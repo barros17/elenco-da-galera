@@ -1,12 +1,13 @@
 project_id = "qcttfdvfqqskndlaofoy"
 
 [auth]
-site_url = "https://uefa-c6-league.vercel.app"
+site_url = "https://elenco-da-galera.vercel.app"
 additional_redirect_urls = [
   "http://localhost:8080/**",
-  "https://uefa-c6-league.vercel.app/**",
-  "https://uefa-c6-league-diego-8d62.vercel.app/",
-  "https://uefa-c6-league-diego-8d62.vercel.app/**",
-  "https://uefa-*-c6-league-diego-8d62.vercel.app",
-  "https://uefa-*-c6-league-diego-8d62.vercel.app/**",
+  "https://elenco-da-galera.vercel.app",
+  "https://elenco-da-galera.vercel.app/**",
+  "https://elenco-da-galera-diego-8d62.vercel.app/",
+  "https://elenco-da-galera-diego-8d62.vercel.app/**",
+  "https://elenco-*-da-galera-diego-8d62.vercel.app",
+  "https://elenco-*-da-galera-diego-8d62.vercel.app/**",
 ]
