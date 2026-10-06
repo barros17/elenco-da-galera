@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, LogOut, Trophy, UserPlus, UsersRound } from "lucide-react";
+import { ClipboardList, LogOut, Trophy, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { PlayerForm } from "@/components/PlayerForm";
@@ -151,9 +151,12 @@ function Index() {
         <div className="mx-auto max-w-6xl px-4 py-5 text-center sm:py-7">
           <h1>
             <span className="mx-auto flex w-fit items-center justify-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/60 bg-primary/10 text-primary shadow-glow-gold sm:h-14 sm:w-14">
-                <UsersRound className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true" />
-              </span>
+              <img
+                src="/elenco-da-galera.svg"
+                alt=""
+                aria-hidden="true"
+                className="h-12 w-12 rounded-2xl shadow-glow-gold sm:h-14 sm:w-14"
+              />
               <span className="text-left font-display text-4xl leading-none font-extrabold tracking-tight text-foreground sm:text-5xl">
                 ELENCO
                 <span className="block text-primary">DA GALERA</span>
