@@ -32,6 +32,8 @@ export type Skills = Record<string, number>;
 
 export type Player = {
   id: string;
+  section_id: string | null;
+  user_id: string;
   name: string;
   photo_url: string | null;
   position: Position;
@@ -68,7 +70,10 @@ export function calcOverall(position: Position, skills: Skills): number {
     return clamp(Math.round(vals.reduce((a, b) => a + b, 0) / vals.length));
   }
   const w = WEIGHTS[position];
-  const total = Object.entries(w).reduce((sum, [key, weight]) => sum + (skills[key] ?? 1) * weight, 0);
+  const total = Object.entries(w).reduce(
+    (sum, [key, weight]) => sum + (skills[key] ?? 1) * weight,
+    0,
+  );
   return clamp(Math.round(total));
 }
 

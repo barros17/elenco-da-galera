@@ -12,6 +12,8 @@ export type PlayerInput = {
 function normalize(row: Record<string, unknown>): Player {
   return {
     id: row["id"] as string,
+    section_id: (row["section_id"] as string | null) ?? null,
+    user_id: row["user_id"] as string,
     name: row["name"] as string,
     photo_url: (row["photo_url"] as string | null) ?? null,
     position: row["position"] as Position,
@@ -30,20 +32,22 @@ async function requireUserId(): Promise<string> {
   return userId;
 }
 
-export async function listPlayers(): Promise<Player[]> {
+export async function listPlayers(sectionId: string): Promise<Player[]> {
   const { data, error } = await supabase
     .from("players")
     .select("*")
+    .eq("section_id", sectionId)
     .order("overall", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(normalize);
 }
 
-export async function createPlayer(input: PlayerInput): Promise<Player> {
+export async function createPlayer(input: PlayerInput, sectionId: string): Promise<Player> {
   const { data, error } = await supabase
     .from("players")
     .insert({
       user_id: await requireUserId(),
+      section_id: sectionId,
       name: input.name.trim(),
       photo_url: input.photo_url,
       position: input.position,
@@ -57,7 +61,12 @@ export async function createPlayer(input: PlayerInput): Promise<Player> {
   return normalize(data);
 }
 
-export async function updatePlayer(id: string, input: PlayerInput): Promise<Player> {
+export async function updatePlayer(
+  id: string,
+  input: PlayerInput,
+  sectionId: string,
+): Promise<Player> {
+  const userId = await requireUserId();
   const { data, error } = await supabase
     .from("players")
     .update({
@@ -69,13 +78,21 @@ export async function updatePlayer(id: string, input: PlayerInput): Promise<Play
       overall: calcOverall(input.position, input.skills),
     })
     .eq("id", id)
+    .eq("section_id", sectionId)
+    .eq("user_id", userId)
     .select("*")
     .single();
   if (error) throw error;
   return normalize(data);
 }
 
-export async function deletePlayer(id: string): Promise<void> {
-  const { error } = await supabase.from("players").delete().eq("id", id);
+export async function deletePlayer(id: string, sectionId: string): Promise<void> {
+  const userId = await requireUserId();
+  const { error } = await supabase
+    .from("players")
+    .delete()
+    .eq("id", id)
+    .eq("section_id", sectionId)
+    .eq("user_id", userId);
   if (error) throw error;
 }

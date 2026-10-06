@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { PlayerForm } from "@/components/PlayerForm";
 import { PlayersGallery } from "@/components/PlayersGallery";
+import { SectionHub } from "@/components/SectionHub";
 import { TeamsStep } from "@/components/TeamsStep";
 import {
   createPlayer,
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 import leagueLogo from "@/assets/uefa-c6-league-logo-display.png";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
+import { getMySection } from "@/lib/sections";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -82,26 +84,45 @@ function Index() {
     };
   }, [queryClient]);
 
-  const { data: players = [] } = useQuery({
-    queryKey: ["players"],
-    queryFn: listPlayers,
+  const sectionQuery = useQuery({
+    queryKey: ["section"],
+    queryFn: getMySection,
     enabled: mounted && !!session,
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["players"] });
+  const section = sectionQuery.data ?? null;
+  const playersQuery = useQuery({
+    queryKey: ["players", section?.section_id],
+    queryFn: () => listPlayers(section!.section_id),
+    enabled: mounted && !!session && !!section,
+  });
+  const players = playersQuery.data ?? [];
+  const ownPlayer = players.find((player) => player.user_id === session?.user.id) ?? null;
+  const playerBeingEdited = editing ?? ownPlayer;
+
+  async function refreshSectionData() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["section"] }),
+      queryClient.invalidateQueries({ queryKey: ["section-members"] }),
+      queryClient.invalidateQueries({ queryKey: ["players"] }),
+    ]);
+  }
 
   const removeMutation = useMutation({
-    mutationFn: deletePlayer,
+    mutationFn: (playerId: string) => deletePlayer(playerId, section!.section_id),
     onSuccess: () => {
-      invalidate();
+      void refreshSectionData();
       toast.success("Jogador excluído.");
     },
     onError: () => toast.error("Não foi possível excluir o jogador."),
   });
 
   async function handleSubmit(input: PlayerInput) {
-    const saved = editing ? await updatePlayer(editing.id, input) : await createPlayer(input);
-    await invalidate();
+    if (!section) throw new Error("Entre ou crie uma seção antes de cadastrar seu jogador.");
+    const saved = playerBeingEdited
+      ? await updatePlayer(playerBeingEdited.id, input, section.section_id)
+      : await createPlayer(input, section.section_id);
+    await refreshSectionData();
     return saved;
   }
 
@@ -161,7 +182,7 @@ function Index() {
         </div>
       </header>
 
-      {session && !authLoading && (
+      {session && !authLoading && section && (
         <nav className="sticky top-0 z-20 border-b border-border/60 bg-background/90 backdrop-blur">
           <div className="mx-auto flex max-w-6xl gap-2 px-3 py-3">
             {STEPS.map((s) => {
@@ -171,7 +192,10 @@ function Index() {
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => setStep(s.id)}
+                  onClick={() => {
+                    if (s.id === 1) setEditing(ownPlayer);
+                    setStep(s.id);
+                  }}
                   className={cn(
                     "flex flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 font-display text-sm font-bold uppercase tracking-wide transition-all",
                     active
@@ -191,6 +215,10 @@ function Index() {
         </nav>
       )}
 
+      {session && !authLoading && section && (
+        <SectionHub section={section} onChanged={refreshSectionData} />
+      )}
+
       <main className="mx-auto max-w-6xl px-4 py-8">
         {authLoading ? (
           <p className="py-12 text-center text-sm text-muted-foreground">Verificando login...</p>
@@ -198,7 +226,8 @@ function Index() {
           <section className="mx-auto max-w-md rounded-2xl border border-border bg-card p-6 text-center shadow-lg">
             <h2 className="font-display text-2xl text-foreground">Entre para continuar</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Faça login com Google para manter seus jogadores privados e vinculados à sua conta.
+              Faça login com Google para criar ou entrar em uma seção e montar o elenco com seu
+              grupo.
             </p>
             <button
               type="button"
@@ -208,19 +237,49 @@ function Index() {
               Continuar com Google
             </button>
           </section>
+        ) : sectionQuery.isLoading ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">Carregando seção...</p>
+        ) : sectionQuery.isError ? (
+          <div className="py-12 text-center">
+            <p className="text-sm text-destructive">Não foi possível carregar sua seção.</p>
+            <button
+              type="button"
+              onClick={() => void sectionQuery.refetch()}
+              className="mt-3 text-sm font-semibold text-primary underline"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        ) : !section ? (
+          <SectionHub section={null} onChanged={refreshSectionData} />
+        ) : playersQuery.isLoading ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">Carregando jogadores...</p>
+        ) : playersQuery.isError ? (
+          <div className="py-12 text-center">
+            <p className="text-sm text-destructive">
+              Não foi possível carregar os jogadores da seção.
+            </p>
+            <button
+              type="button"
+              onClick={() => void playersQuery.refetch()}
+              className="mt-3 text-sm font-semibold text-primary underline"
+            >
+              Tentar novamente
+            </button>
+          </div>
         ) : step === 1 ? (
           <section className="animate-rise space-y-6">
             <h2 className="font-display text-2xl text-foreground">
-              {editing ? `Editando ${editing.name}` : "Etapa 1 — Cadastro de jogadores"}
+              {playerBeingEdited
+                ? `Editando ${playerBeingEdited.name}`
+                : "Etapa 1 — Cadastro de jogador"}
             </h2>
             <PlayerForm
-              editing={editing}
+              editing={playerBeingEdited}
               onSubmit={handleSubmit}
-              onDone={() => {
-                if (editing) {
-                  setEditing(null);
-                  setStep(2);
-                }
+              onDone={(saved) => {
+                setEditing(saved);
+                setStep(2);
               }}
               onCancelEdit={() => {
                 setEditing(null);
@@ -233,6 +292,7 @@ function Index() {
             <h2 className="font-display text-2xl text-foreground">Etapa 2 — Lista de jogadores</h2>
             <PlayersGallery
               players={players}
+              currentUserId={session.user.id}
               onEdit={(p) => {
                 setEditing(p);
                 setStep(1);
