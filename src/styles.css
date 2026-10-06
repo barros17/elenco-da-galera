@@ -1,0 +1,300 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * UEFA C6 LEAGUE — design system
+ * Tema escuro esportivo com detalhes em dourado e verde campo.
+ * Todas as cores em oklch e expostas como tokens semânticos.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-sans: "Barlow", system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-pitch: var(--pitch);
+  --color-pitch-deep: var(--pitch-deep);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+
+  --color-tier-bronze: var(--tier-bronze);
+  --color-tier-silver: var(--tier-silver);
+  --color-tier-gold: var(--tier-gold);
+  --color-tier-diamond: var(--tier-diamond);
+  --color-card-ink-dark: var(--card-ink-dark);
+  --color-card-ink-light: var(--card-ink-light);
+
+  --color-chart-1: var(--gold);
+  --color-chart-2: var(--pitch);
+  --color-chart-3: var(--tier-silver);
+  --color-chart-4: var(--tier-bronze);
+  --color-chart-5: var(--tier-diamond);
+
+  --color-sidebar: var(--surface);
+  --color-sidebar-foreground: var(--foreground);
+  --color-sidebar-primary: var(--primary);
+  --color-sidebar-primary-foreground: var(--primary-foreground);
+  --color-sidebar-accent: var(--surface-raised);
+  --color-sidebar-accent-foreground: var(--foreground);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-ring: var(--ring);
+
+  --animate-reveal: reveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-shine: shine 2.8s linear infinite;
+  --animate-rise: rise 0.45s ease-out both;
+}
+
+:root {
+  --radius: 0.75rem;
+
+  --background: oklch(0.14 0 0);
+  --foreground: oklch(0.97 0 0);
+
+  --surface: oklch(0.19 0 0);
+  --surface-raised: oklch(0.24 0 0);
+
+  --card: oklch(0.19 0 0);
+  --card-foreground: oklch(0.97 0 0);
+  --popover: oklch(0.17 0 0);
+  --popover-foreground: oklch(0.97 0 0);
+
+  --gold: oklch(0.86 0.17 95);
+  --gold-soft: oklch(0.93 0.11 97);
+  --pitch: oklch(0.86 0.17 95);
+  --pitch-deep: oklch(0.45 0.02 95);
+
+  --primary: oklch(0.86 0.17 95);
+  --primary-foreground: oklch(0.16 0 0);
+  --secondary: oklch(0.26 0 0);
+  --secondary-foreground: oklch(0.97 0 0);
+  --muted: oklch(0.24 0 0);
+  --muted-foreground: oklch(0.7 0 0);
+  --accent: oklch(0.86 0.17 95);
+  --accent-foreground: oklch(0.16 0 0);
+  --destructive: oklch(0.62 0.21 24);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --border: oklch(0.32 0 0);
+  --input: oklch(0.3 0 0);
+  --ring: oklch(0.86 0.17 95);
+
+  --tier-bronze: oklch(0.62 0.11 55);
+  --tier-silver: oklch(0.78 0.005 250);
+  --tier-gold: oklch(0.86 0.17 95);
+  --tier-diamond: oklch(0.9 0.02 250);
+
+  --card-ink-dark: oklch(0.22 0.025 65);
+  --card-ink-light: oklch(0.96 0.025 95);
+  --card-shape: polygon(18% 4%, 31% 1.2%, 50% 0%, 69% 1.2%, 82% 4%, 86% 10%, 91% 14%, 98% 15%, 98% 84%, 94% 91%, 76% 96%, 50% 100%, 24% 96%, 6% 91%, 2% 84%, 2% 15%, 9% 14%, 14% 10%);
+
+  --gradient-pitch: radial-gradient(
+      circle at 20% 0%,
+      color-mix(in oklab, var(--gold) 16%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(circle at 85% 10%, color-mix(in oklab, oklch(0.5 0 0) 22%, transparent), transparent 50%);
+  --gradient-gold: linear-gradient(135deg, var(--gold-soft), var(--gold) 45%, oklch(0.65 0.14 80));
+  --gradient-bronze: linear-gradient(160deg, oklch(0.74 0.09 60), oklch(0.5 0.1 48) 60%, oklch(0.38 0.07 45));
+  --gradient-silver: linear-gradient(160deg, oklch(0.92 0 0), oklch(0.7 0 0) 60%, oklch(0.5 0 0));
+  --gradient-tier-gold: linear-gradient(160deg, oklch(0.95 0.1 97), oklch(0.82 0.18 95) 55%, oklch(0.58 0.13 75));
+  --gradient-diamond: linear-gradient(
+    160deg,
+    oklch(0.99 0 0),
+    oklch(0.88 0.01 250) 40%,
+    oklch(0.7 0.02 250) 75%,
+    oklch(0.55 0.02 250)
+  );
+
+  --shadow-card: 0 18px 40px -18px oklch(0 0 0 / 0.75);
+  --shadow-glow: 0 0 34px color-mix(in oklab, var(--gold) 42%, transparent);
+  --shadow-glow-diamond: 0 0 38px color-mix(in oklab, var(--tier-diamond) 55%, transparent);
+}
+
+@keyframes reveal {
+  0% {
+    opacity: 0;
+    transform: rotateY(55deg) scale(0.86);
+    filter: brightness(2.2);
+  }
+  60% {
+    opacity: 1;
+    filter: brightness(1.25);
+  }
+  100% {
+    opacity: 1;
+    transform: rotateY(0deg) scale(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes shine {
+  0% {
+    transform: translateX(-120%) rotate(12deg);
+  }
+  60%,
+  100% {
+    transform: translateX(220%) rotate(12deg);
+  }
+}
+
+@keyframes rise {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility bg-pitch-glow {
+  background-image: var(--gradient-pitch);
+}
+
+@utility football-card {
+  clip-path: var(--card-shape);
+  color: var(--player-card-ink);
+  isolation: isolate;
+}
+
+@utility football-card-inner {
+  clip-path: var(--card-shape);
+  background: var(--player-card-surface);
+}
+
+@utility player-card-bronze {
+  --player-card-ink: var(--card-ink-dark);
+  --player-card-fade: oklch(0.75 0.12 51);
+  --player-card-panel: oklch(0.82 0.1 55 / 0.88);
+  --player-card-surface: linear-gradient(145deg, oklch(0.93 0.08 58), oklch(0.72 0.13 48) 48%, oklch(0.46 0.09 42));
+  background: linear-gradient(145deg, oklch(0.98 0.06 75), oklch(0.64 0.14 48) 58%, oklch(0.34 0.07 40));
+}
+
+@utility player-card-silver {
+  --player-card-ink: oklch(0.22 0.01 250);
+  --player-card-fade: oklch(0.74 0.01 250);
+  --player-card-panel: oklch(0.84 0.005 250 / 0.9);
+  --player-card-surface: linear-gradient(145deg, oklch(0.98 0 0), oklch(0.78 0.01 250) 52%, oklch(0.54 0.015 250));
+  background: linear-gradient(145deg, oklch(1 0 0), oklch(0.72 0.01 250) 58%, oklch(0.38 0.01 250));
+}
+
+@utility player-card-gold {
+  --player-card-ink: var(--card-ink-dark);
+  --player-card-fade: oklch(0.83 0.16 89);
+  --player-card-panel: oklch(0.9 0.12 94 / 0.9);
+  --player-card-surface: linear-gradient(145deg, oklch(0.98 0.09 98), oklch(0.84 0.17 88) 48%, oklch(0.58 0.14 71));
+  background: linear-gradient(145deg, oklch(1 0.1 100), oklch(0.76 0.18 84) 56%, oklch(0.47 0.11 68));
+}
+
+@utility player-card-diamond {
+  --player-card-ink: var(--card-ink-light);
+  --player-card-fade: oklch(0.12 0.085 262);
+  --player-card-panel: oklch(0.14 0.085 260 / 0.9);
+  --player-card-surface: radial-gradient(circle at 50% 34%, oklch(0.36 0.18 260), transparent 38%), linear-gradient(155deg, oklch(0.2 0.12 260), oklch(0.1 0.07 265) 65%, oklch(0.16 0.1 255));
+  background: linear-gradient(145deg, oklch(0.97 0.12 98), oklch(0.77 0.17 87) 45%, oklch(0.95 0.08 98));
+  box-shadow: var(--shadow-glow-diamond), var(--shadow-card);
+}
+
+@utility player-card-facets {
+  opacity: 0.42;
+  background-image:
+    linear-gradient(132deg, transparent 16%, color-mix(in oklab, currentColor 18%, transparent) 16.4%, transparent 17.5%),
+    linear-gradient(42deg, transparent 58%, color-mix(in oklab, currentColor 12%, transparent) 58.5%, transparent 60%),
+    repeating-linear-gradient(115deg, transparent 0 14px, color-mix(in oklab, currentColor 5%, transparent) 15px 16px);
+}
+
+@utility player-card-photo-fade {
+  background: linear-gradient(to bottom, transparent 48%, color-mix(in oklab, var(--player-card-fade) 30%, transparent) 72%, var(--player-card-fade) 100%);
+}
+
+@utility player-card-nameplate {
+  border-color: color-mix(in oklab, var(--player-card-ink) 48%, transparent);
+  background: var(--player-card-panel);
+  backdrop-filter: blur(2px);
+}
+
+@utility text-gradient-gold {
+  background-image: var(--gradient-gold);
+  background-clip: text;
+  color: transparent;
+}
+
+@utility shadow-card-deep {
+  box-shadow: var(--shadow-card);
+}
+
+@utility shadow-glow-gold {
+  box-shadow: var(--shadow-glow);
+}
+
+@utility shine-sweep {
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset-block: -40%;
+    width: 35%;
+    background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.38), transparent);
+    animation: var(--animate-shine);
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    background-image: var(--gradient-pitch);
+    background-attachment: fixed;
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+}
