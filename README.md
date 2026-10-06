@@ -1,4 +1,4 @@
-# UEFA C6 LEAGUE
+# Elenco da Galera
 
 App da pelada: cadastro de jogadores, cartas estilo FIFA Ultimate Team e sorteio de times equilibrados.
 
