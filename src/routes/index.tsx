@@ -49,6 +49,15 @@ const STEPS = [
   { id: 3, label: "Times", icon: Trophy },
 ] as const;
 
+function isMissingSectionPlayersTable(error: unknown): boolean {
+  return (
+    error !== null &&
+    typeof error === "object" &&
+    "code" in error &&
+    (error.code === "PGRST205" || error.code === "42P01")
+  );
+}
+
 function Index() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [editing, setEditing] = useState<Player | null>(null);
@@ -148,6 +157,8 @@ function Index() {
       toast.error("Não foi possível sair da conta.");
     }
   }
+
+  if (!mounted) return null;
 
   return (
     <div className="min-h-screen">
@@ -269,7 +280,9 @@ function Index() {
         ) : playersQuery.isError ? (
           <div className="py-12 text-center">
             <p className="text-sm text-destructive">
-              Não foi possível carregar os jogadores da seção.
+              {isMissingSectionPlayersTable(playersQuery.error)
+                ? "O banco de dados ainda não foi atualizado. Aplique a migration section_players para carregar os jogadores."
+                : "Não foi possível carregar os jogadores da seção."}
             </p>
             <button
               type="button"
