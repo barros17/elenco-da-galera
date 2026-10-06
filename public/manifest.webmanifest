@@ -1,1 +1,16 @@
-{"name":"UEFA C6 LEAGUE","short_name":"C6 LEAGUE","start_url":"/","display":"standalone","background_color":"#0d1a12","theme_color":"#0d1a12","icons":[{"src":"/icon-192.png","sizes":"192x192","type":"image/png"},{"src":"/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}
+{
+  "name": "Elenco da Galera",
+  "short_name": "Elenco",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1a12",
+  "theme_color": "#0d1a12",
+  "icons": [
+    {
+      "src": "/elenco-da-galera.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

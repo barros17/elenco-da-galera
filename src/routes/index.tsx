@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, LogOut, Trophy, UserPlus } from "lucide-react";
+import { ClipboardList, LogOut, Trophy, UserPlus, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { PlayerForm } from "@/components/PlayerForm";
@@ -17,7 +17,6 @@ import {
 } from "@/lib/player-queries";
 import type { Player } from "@/lib/players";
 import { cn } from "@/lib/utils";
-import leagueLogo from "@/assets/uefa-c6-league-logo-display.png";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
 import { getMySection } from "@/lib/sections";
@@ -25,17 +24,17 @@ import { getMySection } from "@/lib/sections";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "UEFA C6 LEAGUE — Cartas e times equilibrados" },
+      { title: "Elenco da Galera — Monte seu time" },
       {
         name: "description",
         content:
-          "Cadastre os jogadores da sua pelada, gere cartas com overall por posição e sorteie times equilibrados em segundos.",
+          "Monte o elenco da sua seção, crie cartas de jogadores e sorteie times equilibrados com a galera.",
       },
-      { property: "og:title", content: "UEFA C6 LEAGUE — Cartas e times equilibrados" },
+      { property: "og:title", content: "Elenco da Galera — Monte seu time" },
       {
         property: "og:description",
         content:
-          "Cadastre jogadores, veja a carta de cada um e sorteie times equilibrados para a pelada.",
+          "Monte o elenco da sua seção, crie cartas de jogadores e sorteie times equilibrados com a galera.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -151,13 +150,15 @@ function Index() {
       <header className="border-b border-border/60 bg-background/70 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4 py-5 text-center sm:py-7">
           <h1>
-            <img
-              src={leagueLogo}
-              alt="UEFA C6 LEAGUE"
-              width={1264}
-              height={391}
-              className="mx-auto h-auto w-full max-w-[25rem]"
-            />
+            <span className="mx-auto flex w-fit items-center justify-center gap-3">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/60 bg-primary/10 text-primary shadow-glow-gold sm:h-14 sm:w-14">
+                <UsersRound className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true" />
+              </span>
+              <span className="text-left font-display text-4xl leading-none font-extrabold tracking-tight text-foreground sm:text-5xl">
+                ELENCO
+                <span className="block text-primary">DA GALERA</span>
+              </span>
+            </span>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground sm:text-base">
             Cartas para a galera e times equilibrados sem discussão.
@@ -309,7 +310,7 @@ function Index() {
       </main>
 
       <footer className="border-t border-border/60 py-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground">
-        UEFA C6 LEAGUE
+        ELENCO DA GALERA
       </footer>
     </div>
   );

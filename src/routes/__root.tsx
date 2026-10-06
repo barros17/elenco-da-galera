@@ -78,11 +78,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "UEFA C6 LEAGUE" },
+      { title: "Elenco da Galera" },
       { name: "theme-color", content: "#141414" },
       {
         name: "description",
-        content: "Cadastre jogadores, gere cartas e sorteie times equilibrados para a pelada.",
+        content:
+          "Monte o elenco da sua seção, crie cartas e sorteie times equilibrados com a galera.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -98,8 +99,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap",
       },
-      { rel: "icon", href: "/favicon.png", type: "image/png" },
-      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "icon", href: "/elenco-da-galera.svg", type: "image/svg+xml" },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
@@ -111,7 +111,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-     <html lang="pt-BR">
+    <html lang="pt-BR">
       <head>
         <HeadContent />
       </head>
