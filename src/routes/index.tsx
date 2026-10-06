@@ -152,10 +152,10 @@ function Index() {
           <h1>
             <span className="mx-auto flex w-fit items-center justify-center gap-3">
               <img
-                src="/elenco-da-galera.svg"
+                src="/elenco-da-galera.jpg"
                 alt=""
                 aria-hidden="true"
-                className="h-12 w-12 rounded-2xl shadow-glow-gold sm:h-14 sm:w-14"
+                className="h-14 w-14 rounded-2xl object-cover shadow-glow-gold sm:h-16 sm:w-16"
               />
               <span className="text-left font-display text-4xl leading-none font-extrabold tracking-tight text-foreground sm:text-5xl">
                 ELENCO

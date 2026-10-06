@@ -7,9 +7,9 @@
   "theme_color": "#0d1a12",
   "icons": [
     {
-      "src": "/elenco-da-galera.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/elenco-da-galera.jpg",
+      "sizes": "768x768",
+      "type": "image/jpeg",
       "purpose": "any"
     }
   ]
