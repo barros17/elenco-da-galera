@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Pencil, Search, Trash2 } from "lucide-react";
+import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlayerCard } from "@/components/PlayerCard";
@@ -8,11 +8,13 @@ import type { Player } from "@/lib/players";
 type Props = {
   players: Player[];
   currentUserId: string;
+  isAdmin: boolean;
+  onAdd: () => void;
   onEdit: (player: Player) => void;
   onDelete: (player: Player) => void;
 };
 
-export function PlayersGallery({ players, currentUserId, onEdit, onDelete }: Props) {
+export function PlayersGallery({ players, currentUserId, isAdmin, onAdd, onEdit, onDelete }: Props) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -38,6 +40,12 @@ export function PlayersGallery({ players, currentUserId, onEdit, onDelete }: Pro
             Overall médio
           </div>
         </div>
+        {isAdmin && (
+          <Button onClick={onAdd}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Adicionar jogador
+          </Button>
+        )}
         <div className="relative ml-auto w-full max-w-xs">
           <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -67,7 +75,7 @@ export function PlayersGallery({ players, currentUserId, onEdit, onDelete }: Pro
                 photoUrl={p.photo_url}
                 overall={p.overall}
               />
-              {p.user_id === currentUserId ? (
+              {p.user_id === currentUserId || isAdmin ? (
                 <div className="flex gap-2">
                   <Button
                     size="sm"
@@ -76,12 +84,17 @@ export function PlayersGallery({ players, currentUserId, onEdit, onDelete }: Pro
                     onClick={() => onEdit(p)}
                   >
                     <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                    Editar meu jogador
+                    {p.user_id === currentUserId ? "Editar meu jogador" : "Editar"}
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => onDelete(p)}
+                    onClick={() => {
+                      if (p.user_id !== currentUserId && !window.confirm(`Excluir ${p.name} desta seção?`)) {
+                        return;
+                      }
+                      onDelete(p);
+                    }}
                     aria-label={`Excluir ${p.name}`}
                   >
                     <Trash2 className="h-3.5 w-3.5 text-destructive" />
@@ -89,7 +102,7 @@ export function PlayersGallery({ players, currentUserId, onEdit, onDelete }: Pro
                 </div>
               ) : (
                 <p className="py-2 text-center text-xs text-muted-foreground">
-                  Jogador de outro usuário
+                  {p.user_id ? "Jogador de outro usuário" : "Adicionado pelo administrador"}
                 </p>
               )}
             </div>

@@ -47,6 +47,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      section_players: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          name: string;
+          overall: number;
+          photo_url: string | null;
+          position: string;
+          section_id: string;
+          skills: Json;
+          user_id: string | null;
+          weak_foot: number;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          name: string;
+          overall?: number;
+          photo_url?: string | null;
+          position: string;
+          section_id: string;
+          skills?: Json;
+          user_id?: string | null;
+          weak_foot?: number;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          name?: string;
+          overall?: number;
+          photo_url?: string | null;
+          position?: string;
+          section_id?: string;
+          skills?: Json;
+          user_id?: string | null;
+          weak_foot?: number;
+        };
+        Relationships: [];
+      };
       sections: {
         Row: {
           created_at: string;

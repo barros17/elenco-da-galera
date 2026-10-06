@@ -33,7 +33,8 @@ export type Skills = Record<string, number>;
 export type Player = {
   id: string;
   section_id: string | null;
-  user_id: string;
+  /** Participante que a carta representa; nulo = jogador adicionado pelo administrador. */
+  user_id: string | null;
   name: string;
   photo_url: string | null;
   position: Position;

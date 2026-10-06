@@ -52,6 +52,7 @@ const STEPS = [
 function Index() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [editing, setEditing] = useState<Player | null>(null);
+  const [creatingNew, setCreatingNew] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -97,7 +98,8 @@ function Index() {
   });
   const players = playersQuery.data ?? [];
   const ownPlayer = players.find((player) => player.user_id === session?.user.id) ?? null;
-  const playerBeingEdited = editing ?? ownPlayer;
+  const isAdmin = section?.is_admin ?? false;
+  const playerBeingEdited = creatingNew ? null : (editing ?? ownPlayer);
 
   async function refreshSectionData() {
     await Promise.all([
@@ -120,7 +122,10 @@ function Index() {
     if (!section) throw new Error("Entre ou crie uma seção antes de cadastrar seu jogador.");
     const saved = playerBeingEdited
       ? await updatePlayer(playerBeingEdited.id, input, section.section_id)
-      : await createPlayer(input, section.section_id);
+      : await createPlayer(input, section.section_id, {
+          // Administrador adicionando um jogador extra: não fica vinculado a ninguém.
+          linkToSelf: !(isAdmin && creatingNew),
+        });
     await refreshSectionData();
     return saved;
   }
@@ -197,7 +202,10 @@ function Index() {
                   key={s.id}
                   type="button"
                   onClick={() => {
-                    if (s.id === 1) setEditing(ownPlayer);
+                    if (s.id === 1) {
+                      setEditing(ownPlayer);
+                      setCreatingNew(false);
+                    }
                     setStep(s.id);
                   }}
                   className={cn(
@@ -280,13 +288,16 @@ function Index() {
             </h2>
             <PlayerForm
               editing={playerBeingEdited}
+              canCancel={creatingNew}
               onSubmit={handleSubmit}
               onDone={(saved) => {
                 setEditing(saved);
+                setCreatingNew(false);
                 setStep(2);
               }}
               onCancelEdit={() => {
                 setEditing(null);
+                setCreatingNew(false);
                 setStep(2);
               }}
             />
@@ -297,8 +308,15 @@ function Index() {
             <PlayersGallery
               players={players}
               currentUserId={session.user.id}
+              isAdmin={isAdmin}
+              onAdd={() => {
+                setCreatingNew(true);
+                setEditing(null);
+                setStep(1);
+              }}
               onEdit={(p) => {
                 setEditing(p);
+                setCreatingNew(false);
                 setStep(1);
               }}
               onDelete={(p) => removeMutation.mutate(p.id)}

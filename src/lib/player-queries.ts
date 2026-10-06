@@ -9,11 +9,15 @@ export type PlayerInput = {
   weak_foot: number;
 };
 
+// Os jogadores da seção ficam em `section_players`. A tabela `players` (jogador individual
+// de cada pessoa) nunca é alterada a partir da seção.
+const TABLE = "section_players";
+
 function normalize(row: Record<string, unknown>): Player {
   return {
     id: row["id"] as string,
     section_id: (row["section_id"] as string | null) ?? null,
-    user_id: row["user_id"] as string,
+    user_id: (row["user_id"] as string | null) ?? null,
     name: row["name"] as string,
     photo_url: (row["photo_url"] as string | null) ?? null,
     position: row["position"] as Position,
@@ -34,7 +38,7 @@ async function requireUserId(): Promise<string> {
 
 export async function listPlayers(sectionId: string): Promise<Player[]> {
   const { data, error } = await supabase
-    .from("players")
+    .from(TABLE)
     .select("*")
     .eq("section_id", sectionId)
     .order("overall", { ascending: false });
@@ -42,12 +46,24 @@ export async function listPlayers(sectionId: string): Promise<Player[]> {
   return (data ?? []).map(normalize);
 }
 
-export async function createPlayer(input: PlayerInput, sectionId: string): Promise<Player> {
+/**
+ * Cria um jogador na seção.
+ * - `linkToSelf: true` (padrão): é a carta do próprio usuário (uma por participante).
+ * - `linkToSelf: false`: jogador extra, só o administrador pode criar (quantos quiser).
+ */
+export async function createPlayer(
+  input: PlayerInput,
+  sectionId: string,
+  options: { linkToSelf?: boolean } = {},
+): Promise<Player> {
+  const userId = await requireUserId();
+  const { linkToSelf = true } = options;
   const { data, error } = await supabase
-    .from("players")
+    .from(TABLE)
     .insert({
-      user_id: await requireUserId(),
       section_id: sectionId,
+      user_id: linkToSelf ? userId : null,
+      created_by: userId,
       name: input.name.trim(),
       photo_url: input.photo_url,
       position: input.position,
@@ -61,14 +77,14 @@ export async function createPlayer(input: PlayerInput, sectionId: string): Promi
   return normalize(data);
 }
 
+/** Quem pode editar é decidido pelo banco: o dono da carta ou o administrador da seção. */
 export async function updatePlayer(
   id: string,
   input: PlayerInput,
   sectionId: string,
 ): Promise<Player> {
-  const userId = await requireUserId();
   const { data, error } = await supabase
-    .from("players")
+    .from(TABLE)
     .update({
       name: input.name.trim(),
       photo_url: input.photo_url,
@@ -79,7 +95,6 @@ export async function updatePlayer(
     })
     .eq("id", id)
     .eq("section_id", sectionId)
-    .eq("user_id", userId)
     .select("*")
     .single();
   if (error) throw error;
@@ -87,12 +102,12 @@ export async function updatePlayer(
 }
 
 export async function deletePlayer(id: string, sectionId: string): Promise<void> {
-  const userId = await requireUserId();
-  const { error } = await supabase
-    .from("players")
+  const { data, error } = await supabase
+    .from(TABLE)
     .delete()
     .eq("id", id)
     .eq("section_id", sectionId)
-    .eq("user_id", userId);
+    .select("id");
   if (error) throw error;
+  if (!data || data.length === 0) throw new Error("Você não tem permissão para excluir este jogador.");
 }

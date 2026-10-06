@@ -22,12 +22,14 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   editing?: Player | null;
+  /** Mostra o botão Cancelar mesmo sem edição (ex.: administrador adicionando jogador). */
+  canCancel?: boolean;
   onSubmit: (input: PlayerInput) => Promise<Player>;
   onDone?: (player: Player) => void;
   onCancelEdit?: () => void;
 };
 
-export function PlayerForm({ editing, onSubmit, onDone, onCancelEdit }: Props) {
+export function PlayerForm({ editing, canCancel, onSubmit, onDone, onCancelEdit }: Props) {
   const [name, setName] = useState("");
   const [position, setPosition] = useState<Position>("MEI");
   const [skills, setSkills] = useState<Skills>(() => defaultSkills("MEI"));
@@ -216,7 +218,7 @@ export function PlayerForm({ editing, onSubmit, onDone, onCancelEdit }: Props) {
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {editing ? "Salvar alterações" : "Salvar jogador"}
           </Button>
-          {editing && (
+          {(editing || canCancel) && (
             <Button variant="outline" size="lg" onClick={onCancelEdit}>
               Cancelar
             </Button>
