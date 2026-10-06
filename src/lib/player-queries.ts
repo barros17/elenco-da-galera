@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { getSessionId } from "./session";
 import { calcOverall, clampWeakFoot, type Player, type Position, type Skills } from "./players";
 
 export type PlayerInput = {
@@ -23,11 +22,18 @@ function normalize(row: Record<string, unknown>): Player {
   };
 }
 
+async function requireUserId(): Promise<string> {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  const userId = data.session?.user.id;
+  if (!userId) throw new Error("Faça login para acessar os jogadores.");
+  return userId;
+}
+
 export async function listPlayers(): Promise<Player[]> {
   const { data, error } = await supabase
     .from("players")
     .select("*")
-    .eq("session_id", getSessionId())
     .order("overall", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(normalize);
@@ -37,7 +43,7 @@ export async function createPlayer(input: PlayerInput): Promise<Player> {
   const { data, error } = await supabase
     .from("players")
     .insert({
-      session_id: getSessionId(),
+      user_id: await requireUserId(),
       name: input.name.trim(),
       photo_url: input.photo_url,
       position: input.position,
@@ -73,4 +79,3 @@ export async function deletePlayer(id: string): Promise<void> {
   const { error } = await supabase.from("players").delete().eq("id", id);
   if (error) throw error;
 }
-

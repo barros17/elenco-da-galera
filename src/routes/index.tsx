@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, Trophy, UserPlus } from "lucide-react";
+import { ClipboardList, LogOut, Trophy, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { PlayerForm } from "@/components/PlayerForm";
@@ -17,17 +17,19 @@ import {
 import type { Player } from "@/lib/players";
 import { cn } from "@/lib/utils";
 import leagueLogo from "@/assets/uefa-c6-league-logo-display.png";
+import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-       { title: "UEFA C6 LEAGUE — Cartas e times equilibrados" },
+      { title: "UEFA C6 LEAGUE — Cartas e times equilibrados" },
       {
         name: "description",
         content:
           "Cadastre os jogadores da sua pelada, gere cartas com overall por posição e sorteie times equilibrados em segundos.",
       },
-       { property: "og:title", content: "UEFA C6 LEAGUE — Cartas e times equilibrados" },
+      { property: "og:title", content: "UEFA C6 LEAGUE — Cartas e times equilibrados" },
       {
         property: "og:description",
         content:
@@ -50,14 +52,40 @@ function Index() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [editing, setEditing] = useState<Player | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const queryClient = useQueryClient();
 
   useEffect(() => setMounted(true), []);
 
+  useEffect(() => {
+    let active = true;
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setAuthLoading(false);
+      queryClient.clear();
+    });
+
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (!active) return;
+      if (error) {
+        console.error("Unable to restore Supabase session:", error);
+        toast.error("Não foi possível verificar seu login. Atualize a página e tente novamente.");
+      }
+      setSession(data.session);
+      setAuthLoading(false);
+    });
+
+    return () => {
+      active = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, [queryClient]);
+
   const { data: players = [] } = useQuery({
     queryKey: ["players"],
     queryFn: listPlayers,
-    enabled: mounted,
+    enabled: mounted && !!session,
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["players"] });
@@ -77,56 +105,110 @@ function Index() {
     return saved;
   }
 
+  async function handleGoogleSignIn() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) {
+      console.error("Google sign-in failed:", error);
+      toast.error("Não foi possível iniciar o login com Google.");
+    }
+  }
+
+  async function handleSignOut() {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Supabase sign-out failed:", error);
+      toast.error("Não foi possível sair da conta.");
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <Toaster position="bottom-center" />
       <header className="border-b border-border/60 bg-background/70 backdrop-blur">
-         <div className="mx-auto max-w-6xl px-4 py-5 text-center sm:py-7">
-           <h1>
-             <img
-               src={leagueLogo}
-               alt="UEFA C6 LEAGUE"
-               width={1264}
-               height={391}
-               className="mx-auto h-auto w-full max-w-[25rem]"
-             />
-           </h1>
+        <div className="mx-auto max-w-6xl px-4 py-5 text-center sm:py-7">
+          <h1>
+            <img
+              src={leagueLogo}
+              alt="UEFA C6 LEAGUE"
+              width={1264}
+              height={391}
+              className="mx-auto h-auto w-full max-w-[25rem]"
+            />
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground sm:text-base">
             Cartas para a galera e times equilibrados sem discussão.
           </p>
+          {session && (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              {session.user.email && (
+                <span className="max-w-[15rem] truncate text-xs text-muted-foreground">
+                  {session.user.email}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => void handleSignOut()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sair
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
-      <nav className="sticky top-0 z-20 border-b border-border/60 bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl gap-2 px-3 py-3">
-          {STEPS.map((s) => {
-            const Icon = s.icon;
-            const active = step === s.id;
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setStep(s.id)}
-                className={cn(
-                  "flex flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 font-display text-sm font-bold uppercase tracking-wide transition-all",
-                  active
-                    ? "border-primary bg-primary text-primary-foreground shadow-glow-gold"
-                    : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                <span className="hidden sm:inline">
-                  {s.id}. {s.label}
-                </span>
-                <span className="sm:hidden">{s.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+      {session && !authLoading && (
+        <nav className="sticky top-0 z-20 border-b border-border/60 bg-background/90 backdrop-blur">
+          <div className="mx-auto flex max-w-6xl gap-2 px-3 py-3">
+            {STEPS.map((s) => {
+              const Icon = s.icon;
+              const active = step === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setStep(s.id)}
+                  className={cn(
+                    "flex flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 font-display text-sm font-bold uppercase tracking-wide transition-all",
+                    active
+                      ? "border-primary bg-primary text-primary-foreground shadow-glow-gold"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {s.id}. {s.label}
+                  </span>
+                  <span className="sm:hidden">{s.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
 
       <main className="mx-auto max-w-6xl px-4 py-8">
-        {step === 1 && (
+        {authLoading ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">Verificando login...</p>
+        ) : !session ? (
+          <section className="mx-auto max-w-md rounded-2xl border border-border bg-card p-6 text-center shadow-lg">
+            <h2 className="font-display text-2xl text-foreground">Entre para continuar</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Faça login com Google para manter seus jogadores privados e vinculados à sua conta.
+            </p>
+            <button
+              type="button"
+              onClick={() => void handleGoogleSignIn()}
+              className="mt-6 w-full rounded-xl bg-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-wide text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              Continuar com Google
+            </button>
+          </section>
+        ) : step === 1 ? (
           <section className="animate-rise space-y-6">
             <h2 className="font-display text-2xl text-foreground">
               {editing ? `Editando ${editing.name}` : "Etapa 1 — Cadastro de jogadores"}
@@ -146,9 +228,7 @@ function Index() {
               }}
             />
           </section>
-        )}
-
-        {step === 2 && (
+        ) : step === 2 ? (
           <section className="animate-rise space-y-6">
             <h2 className="font-display text-2xl text-foreground">Etapa 2 — Lista de jogadores</h2>
             <PlayersGallery
@@ -160,9 +240,7 @@ function Index() {
               onDelete={(p) => removeMutation.mutate(p.id)}
             />
           </section>
-        )}
-
-        {step === 3 && (
+        ) : (
           <section className="animate-rise space-y-6">
             <h2 className="font-display text-2xl text-foreground">Etapa 3 — Gerar times</h2>
             <TeamsStep players={players} />

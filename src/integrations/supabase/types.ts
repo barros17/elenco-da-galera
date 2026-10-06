@@ -22,7 +22,7 @@ export type Database = {
           overall: number
           photo_url: string | null
           position: string
-          session_id: string
+          user_id: string
           skills: Json
           weak_foot: number
         }
@@ -33,7 +33,7 @@ export type Database = {
           overall?: number
           photo_url?: string | null
           position: string
-          session_id: string
+          user_id: string
           skills?: Json
           weak_foot?: number
         }
@@ -44,7 +44,7 @@ export type Database = {
           overall?: number
           photo_url?: string | null
           position?: string
-          session_id?: string
+          user_id?: string
           skills?: Json
           weak_foot?: number
         }
