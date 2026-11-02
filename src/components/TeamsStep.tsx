@@ -29,16 +29,16 @@ export function TeamsStep({ players }: { players: Player[] }) {
 
   function draw() {
     if (teamCount < 2) {
-      toast.error(`Você precisa de pelo menos ${size * 2} jogadores para formar 2 times de ${size}.`);
+      toast.error(
+        `Você precisa de pelo menos ${size * 2} jogadores para formar 2 times de ${size}.`,
+      );
       return;
     }
     const r = generateTeams(players, size);
     setResult(r);
     setNames(r.teams.map((t) => t.name));
     if (r.reserves.length > 0) {
-      toast.info(
-        `${r.reserves.length} jogador(es) sobraram e ficaram como reservas.`,
-      );
+      toast.info(`${r.reserves.length} jogador(es) sobraram e ficaram como reservas.`);
     }
   }
 
@@ -48,7 +48,7 @@ export function TeamsStep({ players }: { players: Player[] }) {
     try {
       const url = await toPng(boardRef.current, { pixelRatio: 2, backgroundColor: "#141414" });
       const link = document.createElement("a");
-       link.download = "uefa-c6-league-times.png";
+      link.download = "elenco-da-galera-times.png";
       link.href = url;
       link.click();
       toast.success("Imagem dos times baixada!");
@@ -101,7 +101,9 @@ export function TeamsStep({ players }: { players: Player[] }) {
         <div className="space-y-5">
           <div className="flex flex-wrap items-center gap-4">
             <div className="rounded-xl border border-primary/40 bg-card px-5 py-3 shadow-glow-gold">
-              <div className="font-display text-3xl font-bold text-primary">Equilíbrio: {balance}%</div>
+              <div className="font-display text-3xl font-bold text-primary">
+                Equilíbrio: {balance}%
+              </div>
               <div className="text-xs tracking-widest text-muted-foreground uppercase">
                 Diferença entre o melhor e o pior time
               </div>
@@ -121,7 +123,10 @@ export function TeamsStep({ players }: { players: Player[] }) {
                   className="animate-rise overflow-hidden rounded-2xl border border-border shadow-card-deep"
                   style={{ backgroundImage: `linear-gradient(135deg, ${color.from}, ${color.to})` }}
                 >
-                  <div className="flex flex-wrap items-center gap-3 px-5 py-4" style={{ color: color.ink }}>
+                  <div
+                    className="flex flex-wrap items-center gap-3 px-5 py-4"
+                    style={{ color: color.ink }}
+                  >
                     <Input
                       value={names[i] ?? team.name}
                       onChange={(e) =>
