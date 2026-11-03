@@ -14,14 +14,7 @@ type Props = {
   onDelete: (player: Player) => void;
 };
 
-export function PlayersGallery({
-  players,
-  currentUserId,
-  isAdmin,
-  onAdd,
-  onEdit,
-  onDelete,
-}: Props) {
+export function PlayersGallery({ players, currentUserId, isAdmin, onAdd, onEdit, onDelete }: Props) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -97,10 +90,7 @@ export function PlayersGallery({
                     size="sm"
                     variant="ghost"
                     onClick={() => {
-                      if (
-                        p.user_id !== currentUserId &&
-                        !window.confirm(`Excluir ${p.name} desta seção?`)
-                      ) {
+                      if (p.user_id !== currentUserId && !window.confirm(`Excluir ${p.name} desta seção?`)) {
                         return;
                       }
                       onDelete(p);

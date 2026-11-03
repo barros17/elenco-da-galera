@@ -118,52 +118,18 @@
 
   --card-ink-dark: oklch(0.22 0.025 65);
   --card-ink-light: oklch(0.96 0.025 95);
-  --card-shape: polygon(
-    18% 4%,
-    31% 1.2%,
-    50% 0%,
-    69% 1.2%,
-    82% 4%,
-    86% 10%,
-    91% 14%,
-    98% 15%,
-    98% 84%,
-    94% 91%,
-    76% 96%,
-    50% 100%,
-    24% 96%,
-    6% 91%,
-    2% 84%,
-    2% 15%,
-    9% 14%,
-    14% 10%
-  );
+  --card-shape: polygon(18% 4%, 31% 1.2%, 50% 0%, 69% 1.2%, 82% 4%, 86% 10%, 91% 14%, 98% 15%, 98% 84%, 94% 91%, 76% 96%, 50% 100%, 24% 96%, 6% 91%, 2% 84%, 2% 15%, 9% 14%, 14% 10%);
 
-  --gradient-pitch:
-    radial-gradient(
+  --gradient-pitch: radial-gradient(
       circle at 20% 0%,
       color-mix(in oklab, var(--gold) 16%, transparent),
       transparent 55%
     ),
-    radial-gradient(
-      circle at 85% 10%,
-      color-mix(in oklab, oklch(0.5 0 0) 22%, transparent),
-      transparent 50%
-    );
+    radial-gradient(circle at 85% 10%, color-mix(in oklab, oklch(0.5 0 0) 22%, transparent), transparent 50%);
   --gradient-gold: linear-gradient(135deg, var(--gold-soft), var(--gold) 45%, oklch(0.65 0.14 80));
-  --gradient-bronze: linear-gradient(
-    160deg,
-    oklch(0.74 0.09 60),
-    oklch(0.5 0.1 48) 60%,
-    oklch(0.38 0.07 45)
-  );
+  --gradient-bronze: linear-gradient(160deg, oklch(0.74 0.09 60), oklch(0.5 0.1 48) 60%, oklch(0.38 0.07 45));
   --gradient-silver: linear-gradient(160deg, oklch(0.92 0 0), oklch(0.7 0 0) 60%, oklch(0.5 0 0));
-  --gradient-tier-gold: linear-gradient(
-    160deg,
-    oklch(0.95 0.1 97),
-    oklch(0.82 0.18 95) 55%,
-    oklch(0.58 0.13 75)
-  );
+  --gradient-tier-gold: linear-gradient(160deg, oklch(0.95 0.1 97), oklch(0.82 0.18 95) 55%, oklch(0.58 0.13 75));
   --gradient-diamond: linear-gradient(
     160deg,
     oklch(0.99 0 0),
@@ -234,30 +200,15 @@
   --player-card-ink: var(--card-ink-dark);
   --player-card-fade: oklch(0.75 0.12 51);
   --player-card-panel: oklch(0.82 0.1 55 / 0.88);
-  --player-card-surface: linear-gradient(
-    145deg,
-    oklch(0.93 0.08 58),
-    oklch(0.72 0.13 48) 48%,
-    oklch(0.46 0.09 42)
-  );
-  background: linear-gradient(
-    145deg,
-    oklch(0.98 0.06 75),
-    oklch(0.64 0.14 48) 58%,
-    oklch(0.34 0.07 40)
-  );
+  --player-card-surface: linear-gradient(145deg, oklch(0.93 0.08 58), oklch(0.72 0.13 48) 48%, oklch(0.46 0.09 42));
+  background: linear-gradient(145deg, oklch(0.98 0.06 75), oklch(0.64 0.14 48) 58%, oklch(0.34 0.07 40));
 }
 
 @utility player-card-silver {
   --player-card-ink: oklch(0.22 0.01 250);
   --player-card-fade: oklch(0.74 0.01 250);
   --player-card-panel: oklch(0.84 0.005 250 / 0.9);
-  --player-card-surface: linear-gradient(
-    145deg,
-    oklch(0.98 0 0),
-    oklch(0.78 0.01 250) 52%,
-    oklch(0.54 0.015 250)
-  );
+  --player-card-surface: linear-gradient(145deg, oklch(0.98 0 0), oklch(0.78 0.01 250) 52%, oklch(0.54 0.015 250));
   background: linear-gradient(145deg, oklch(1 0 0), oklch(0.72 0.01 250) 58%, oklch(0.38 0.01 250));
 }
 
@@ -265,65 +216,29 @@
   --player-card-ink: var(--card-ink-dark);
   --player-card-fade: oklch(0.83 0.16 89);
   --player-card-panel: oklch(0.9 0.12 94 / 0.9);
-  --player-card-surface: linear-gradient(
-    145deg,
-    oklch(0.98 0.09 98),
-    oklch(0.84 0.17 88) 48%,
-    oklch(0.58 0.14 71)
-  );
-  background: linear-gradient(
-    145deg,
-    oklch(1 0.1 100),
-    oklch(0.76 0.18 84) 56%,
-    oklch(0.47 0.11 68)
-  );
+  --player-card-surface: linear-gradient(145deg, oklch(0.98 0.09 98), oklch(0.84 0.17 88) 48%, oklch(0.58 0.14 71));
+  background: linear-gradient(145deg, oklch(1 0.1 100), oklch(0.76 0.18 84) 56%, oklch(0.47 0.11 68));
 }
 
 @utility player-card-diamond {
   --player-card-ink: var(--card-ink-light);
   --player-card-fade: oklch(0.12 0.085 262);
   --player-card-panel: oklch(0.14 0.085 260 / 0.9);
-  --player-card-surface:
-    radial-gradient(circle at 50% 34%, oklch(0.36 0.18 260), transparent 38%),
-    linear-gradient(155deg, oklch(0.2 0.12 260), oklch(0.1 0.07 265) 65%, oklch(0.16 0.1 255));
-  background: linear-gradient(
-    145deg,
-    oklch(0.97 0.12 98),
-    oklch(0.77 0.17 87) 45%,
-    oklch(0.95 0.08 98)
-  );
+  --player-card-surface: radial-gradient(circle at 50% 34%, oklch(0.36 0.18 260), transparent 38%), linear-gradient(155deg, oklch(0.2 0.12 260), oklch(0.1 0.07 265) 65%, oklch(0.16 0.1 255));
+  background: linear-gradient(145deg, oklch(0.97 0.12 98), oklch(0.77 0.17 87) 45%, oklch(0.95 0.08 98));
   box-shadow: var(--shadow-glow-diamond), var(--shadow-card);
 }
 
 @utility player-card-facets {
   opacity: 0.42;
   background-image:
-    linear-gradient(
-      132deg,
-      transparent 16%,
-      color-mix(in oklab, currentColor 18%, transparent) 16.4%,
-      transparent 17.5%
-    ),
-    linear-gradient(
-      42deg,
-      transparent 58%,
-      color-mix(in oklab, currentColor 12%, transparent) 58.5%,
-      transparent 60%
-    ),
-    repeating-linear-gradient(
-      115deg,
-      transparent 0 14px,
-      color-mix(in oklab, currentColor 5%, transparent) 15px 16px
-    );
+    linear-gradient(132deg, transparent 16%, color-mix(in oklab, currentColor 18%, transparent) 16.4%, transparent 17.5%),
+    linear-gradient(42deg, transparent 58%, color-mix(in oklab, currentColor 12%, transparent) 58.5%, transparent 60%),
+    repeating-linear-gradient(115deg, transparent 0 14px, color-mix(in oklab, currentColor 5%, transparent) 15px 16px);
 }
 
 @utility player-card-photo-fade {
-  background: linear-gradient(
-    to bottom,
-    transparent 48%,
-    color-mix(in oklab, var(--player-card-fade) 30%, transparent) 72%,
-    var(--player-card-fade) 100%
-  );
+  background: linear-gradient(to bottom, transparent 48%, color-mix(in oklab, var(--player-card-fade) 30%, transparent) 72%, var(--player-card-fade) 100%);
 }
 
 @utility player-card-nameplate {

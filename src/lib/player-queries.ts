@@ -51,28 +51,6 @@ export async function listPlayers(sectionId: string): Promise<Player[]> {
  * - `linkToSelf: true` (padrão): é a carta do próprio usuário (uma por participante).
  * - `linkToSelf: false`: jogador extra, só o administrador pode criar (quantos quiser).
  */
-function sanitizePlayerPayload(position: Position, skills: Skills, weakFoot: number) {
-  const safeSkills: Skills = { ...skills };
-  const keys =
-    position === "GOL"
-      ? ["MER", "MAN", "CHU", "REF", "VEL", "POS"]
-      : ["RIT", "CHU", "PAS", "DRI", "DEF", "FIS"];
-
-  for (const key of keys) {
-    const rawValue = Number(safeSkills[key] ?? 1);
-    safeSkills[key] = Number.isFinite(rawValue) ? clamp(rawValue, 1, 99) : 1;
-  }
-
-  return {
-    skills: safeSkills,
-    weak_foot: clampWeakFoot(weakFoot),
-  };
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, Math.round(value)));
-}
-
 export async function createPlayer(
   input: PlayerInput,
   sectionId: string,
@@ -80,8 +58,6 @@ export async function createPlayer(
 ): Promise<Player> {
   const userId = await requireUserId();
   const { linkToSelf = true } = options;
-  const payload = sanitizePlayerPayload(input.position, input.skills, input.weak_foot);
-
   const { data, error } = await supabase
     .from(TABLE)
     .insert({
@@ -91,8 +67,9 @@ export async function createPlayer(
       name: input.name.trim(),
       photo_url: input.photo_url,
       position: input.position,
-      skills: payload.skills,
-      weak_foot: payload.weak_foot,
+      skills: input.skills,
+      weak_foot: clampWeakFoot(input.weak_foot),
+      overall: calcOverall(input.position, input.skills),
     })
     .select("*")
     .single();
@@ -106,16 +83,15 @@ export async function updatePlayer(
   input: PlayerInput,
   sectionId: string,
 ): Promise<Player> {
-  const payload = sanitizePlayerPayload(input.position, input.skills, input.weak_foot);
-
   const { data, error } = await supabase
     .from(TABLE)
     .update({
       name: input.name.trim(),
       photo_url: input.photo_url,
       position: input.position,
-      skills: payload.skills,
-      weak_foot: payload.weak_foot,
+      skills: input.skills,
+      weak_foot: clampWeakFoot(input.weak_foot),
+      overall: calcOverall(input.position, input.skills),
     })
     .eq("id", id)
     .eq("section_id", sectionId)
@@ -133,6 +109,5 @@ export async function deletePlayer(id: string, sectionId: string): Promise<void>
     .eq("section_id", sectionId)
     .select("id");
   if (error) throw error;
-  if (!data || data.length === 0)
-    throw new Error("Você não tem permissão para excluir este jogador.");
+  if (!data || data.length === 0) throw new Error("Você não tem permissão para excluir este jogador.");
 }
