@@ -83,6 +83,10 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
       toast.error("Selecione um jogo na etapa Presença antes de gerar os times.");
       return;
     }
+    if (event.status === "canceled") {
+      toast.error("Reative o jogo antes de sortear os times.");
+      return;
+    }
     if (attendanceLoading) {
       toast.error("Aguarde a lista de presença carregar.");
       return;
@@ -235,6 +239,11 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
           escalação; também é possível arrastar e soltar.
         </p>
       </div>
+      {event?.status === "canceled" && (
+        <p className="rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+          Este jogo está cancelado e não pode receber sorteio.
+        </p>
+      )}
 
       <div className="flex flex-wrap items-end gap-4 rounded-xl border border-border bg-card p-5">
         <div className="min-w-[12rem]">

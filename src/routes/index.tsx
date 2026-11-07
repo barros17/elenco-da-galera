@@ -30,6 +30,10 @@ import {
 } from "@/lib/events";
 import {
   createFootballEvent,
+  updateFootballEvent,
+  cancelFootballEvent,
+  reactivateFootballEvent,
+  deleteFootballEvent,
   listEventAttendance,
   listSectionEvents,
   updateEventAttendance,
@@ -127,7 +131,7 @@ function Index() {
   const players = playersQuery.data ?? EMPTY_PLAYERS;
   const eventsQuery = useQuery({
     queryKey: ["section-events", section?.section_id],
-    queryFn: () => listSectionEvents(section!.section_id),
+    queryFn: () => listSectionEvents(section!.section_id, section!.is_admin),
     enabled: mounted && !!session && !!section,
     refetchInterval: 15_000,
   });
@@ -164,6 +168,28 @@ function Index() {
       setSelectedEventId(eventId);
     },
     [queryClient],
+  );
+  const refreshEvents = useCallback(
+    async () =>
+      queryClient.invalidateQueries({ queryKey: ["section-events", section?.section_id] }),
+    [queryClient, section?.section_id],
+  );
+  const handleUpdateEvent = useCallback(
+    async (event: NewFootballEvent & { id: string }) => {
+      await updateFootballEvent(event);
+      await refreshEvents();
+      await queryClient.invalidateQueries({ queryKey: ["event-attendance", event.id] });
+    },
+    [queryClient, refreshEvents],
+  );
+  const handleEventAction = useCallback(
+    async (action: () => Promise<void>, eventId: string, clearSelection = false) => {
+      await action();
+      await refreshEvents();
+      await queryClient.invalidateQueries({ queryKey: ["event-attendance", eventId] });
+      if (clearSelection && selectedEventId === eventId) setSelectedEventId(null);
+    },
+    [queryClient, refreshEvents, selectedEventId],
   );
   const ownPlayer = players.find((player) => player.user_id === session?.user.id) ?? null;
   const isAdmin = section?.is_admin ?? false;
@@ -428,6 +454,16 @@ function Index() {
             }
             onSelectEvent={setSelectedEventId}
             onCreateEvent={handleCreateEvent}
+            onUpdateEvent={handleUpdateEvent}
+            onCancelEvent={(eventId) =>
+              handleEventAction(() => cancelFootballEvent(eventId), eventId)
+            }
+            onReactivateEvent={(eventId) =>
+              handleEventAction(() => reactivateFootballEvent(eventId), eventId)
+            }
+            onDeleteEvent={(eventId) =>
+              handleEventAction(() => deleteFootballEvent(eventId), eventId, true)
+            }
             onSetAttendance={async (eventId, playerId, status: AttendanceStatus) => {
               await updateEventAttendance(eventId, playerId, status);
               await queryClient.invalidateQueries({ queryKey: ["event-attendance", eventId] });

@@ -311,6 +311,20 @@ export type Database = {
         Returns: undefined;
       };
       delete_game_style: { Args: { p_id: string; p_section_id: string }; Returns: undefined };
+      update_section_event: {
+        Args: {
+          p_event_id: string;
+          p_title: string;
+          p_starts_at: string;
+          p_ends_at: string;
+          p_modality: string;
+          p_game_style_id?: string | null;
+        };
+        Returns: undefined;
+      };
+      cancel_section_event: { Args: { p_event_id: string }; Returns: undefined };
+      reactivate_section_event: { Args: { p_event_id: string }; Returns: undefined };
+      delete_section_event: { Args: { p_event_id: string }; Returns: undefined };
       create_section: {
         Args: { p_name: string };
         Returns: string;

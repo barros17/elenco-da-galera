@@ -14,8 +14,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlayerPhoto } from "@/components/PlayerPhoto";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Player } from "@/lib/players";
 import type { GameStyle } from "@/lib/game-style-queries";
+import { eventActions } from "@/lib/event-management";
 import {
   type AttendanceStatus,
   type EventAttendance,
@@ -40,6 +51,10 @@ type Props = {
   attendanceErrorMessage: string;
   onSelectEvent: (eventId: string) => void;
   onCreateEvent: (event: NewFootballEvent) => Promise<void>;
+  onUpdateEvent: (event: NewFootballEvent & { id: string }) => Promise<void>;
+  onCancelEvent: (eventId: string) => Promise<void>;
+  onReactivateEvent: (eventId: string) => Promise<void>;
+  onDeleteEvent: (eventId: string) => Promise<void>;
   onSetAttendance: (eventId: string, playerId: string, status: AttendanceStatus) => Promise<void>;
   onRefreshEvents: () => void;
   onRefreshAttendance: () => void;
@@ -83,6 +98,10 @@ export function EventsStep({
   attendanceErrorMessage,
   onSelectEvent,
   onCreateEvent,
+  onUpdateEvent,
+  onCancelEvent,
+  onReactivateEvent,
+  onDeleteEvent,
   onSetAttendance,
   onRefreshEvents,
   onRefreshAttendance,
@@ -97,6 +116,9 @@ export function EventsStep({
   );
   const [modality, setModality] = useState<GameModality>("futsal");
   const [gameStyleId, setGameStyleId] = useState<string | null>(null);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [editingOriginalFormat, setEditingOriginalFormat] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<"cancel" | "delete" | null>(null);
   const [busy, setBusy] = useState(false);
 
   const selectedEvent = events.find((event) => event.id === selectedEventId) ?? null;
@@ -105,6 +127,28 @@ export function EventsStep({
   const ownAttendance = ownPlayer ? attendanceByPlayerId.get(ownPlayer.id) : null;
   const confirmedCount = attendance.filter((row) => row.status === "CONFIRMED").length;
   const pendingCount = attendance.filter((row) => row.status === "PENDING").length;
+  const formatChanged =
+    editingEventId !== null &&
+    editingOriginalFormat !== `${modality}:${gameStyleId ?? ""}` &&
+    attendance.length > 0;
+
+  function startEditing(event: FootballEvent) {
+    setEditingEventId(event.id);
+    setTitle(event.title);
+    setStartsAt(localDateTimeValue(new Date(event.starts_at)));
+    setEndsAt(localDateTimeValue(new Date(event.ends_at)));
+    setModality(event.modality);
+    setGameStyleId(event.game_style_id);
+    setEditingOriginalFormat(`${event.modality}:${event.game_style_id ?? ""}`);
+  }
+
+  function resetForm() {
+    setEditingEventId(null);
+    setTitle("");
+    setModality("futsal");
+    setGameStyleId(null);
+    setEditingOriginalFormat(null);
+  }
 
   async function createEvent(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -118,21 +162,63 @@ export function EventsStep({
       toast.error("O horário de término precisa ser depois do início.");
       return;
     }
+    if (modality === "custom" && !gameStyleId) {
+      toast.error("Selecione um estilo personalizado.");
+      return;
+    }
 
     setBusy(true);
     try {
-      await onCreateEvent({
+      const input = {
         section_id: sectionId,
         title: title.trim(),
         starts_at: start.toISOString(),
         ends_at: end.toISOString(),
         modality,
         game_style_id: modality === "custom" ? gameStyleId : null,
-      });
-      setTitle("");
-      toast.success("Jogo criado. A galera já pode confirmar presença.");
+      } satisfies NewFootballEvent;
+      if (editingEventId) {
+        await onUpdateEvent({ ...input, id: editingEventId });
+        toast.success("Jogo atualizado.");
+      } else {
+        await onCreateEvent(input);
+        toast.success("Jogo criado. A galera já pode confirmar presença.");
+      }
+      resetForm();
     } catch (error) {
       console.error("Event creation failed:", error);
+      toast.error(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runPendingAction() {
+    if (!selectedEvent || !pendingAction) return;
+    setBusy(true);
+    try {
+      if (pendingAction === "cancel") {
+        await onCancelEvent(selectedEvent.id);
+        toast.success("Jogo cancelado.");
+      } else {
+        await onDeleteEvent(selectedEvent.id);
+        toast.success("Jogo excluído.");
+      }
+      setPendingAction(null);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reactivate() {
+    if (!selectedEvent) return;
+    setBusy(true);
+    try {
+      await onReactivateEvent(selectedEvent.id);
+      toast.success("Jogo reativado.");
+    } catch (error) {
       toast.error(errorMessage(error));
     } finally {
       setBusy(false);
@@ -169,7 +255,9 @@ export function EventsStep({
         >
           <div className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-primary" />
-            <h3 className="font-display text-xl font-bold">Criar jogo</h3>
+            <h3 className="font-display text-xl font-bold">
+              {editingEventId ? "Editar jogo" : "Criar jogo"}
+            </h3>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <div className="space-y-2 sm:col-span-2 lg:col-span-1">
@@ -238,8 +326,19 @@ export function EventsStep({
             </div>
             <div className="flex items-end">
               <Button className="w-full" disabled={busy}>
-                Criar jogo
+                {editingEventId ? "Salvar alterações" : "Criar jogo"}
               </Button>
+              {editingEventId && (
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  Cancelar edição
+                </Button>
+              )}
+              {formatChanged && (
+                <p className="text-sm text-amber-600 sm:col-span-2">
+                  Este jogo já tem presenças. Ao trocar o formato, será necessário gerar o sorteio
+                  novamente.
+                </p>
+              )}
             </div>
           </div>
         </form>
@@ -287,6 +386,8 @@ export function EventsStep({
                     type="button"
                     onClick={() => onSelectEvent(event.id)}
                     className={`w-full rounded-xl border p-3 text-left transition-colors ${
+                      event.status === "canceled" ? "opacity-60" : ""
+                    } ${
                       active
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/50"
@@ -304,6 +405,11 @@ export function EventsStep({
                           "Estilo personalizado")
                         : MODALITIES.find((item) => item.value === event.modality)?.label}
                     </span>
+                    {event.status === "canceled" && (
+                      <span className="mt-2 inline-block rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                        Cancelado
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -326,6 +432,48 @@ export function EventsStep({
                     {confirmedCount} vão · {pendingCount} aguardando resposta
                   </p>
                 </div>
+                {isAdmin && (
+                  <div className="flex flex-wrap gap-2">
+                    {eventActions(true, selectedEvent.status).includes("edit") ? (
+                      <>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => startEditing(selectedEvent)}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setPendingAction("cancel")}
+                        >
+                          Cancelar jogo
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void reactivate()}
+                        disabled={busy}
+                      >
+                        Reativar
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => setPendingAction("delete")}
+                    >
+                      Excluir
+                    </Button>
+                  </div>
+                )}
                 <Button
                   type="button"
                   size="icon"
@@ -337,7 +485,13 @@ export function EventsStep({
                 </Button>
               </div>
 
-              {ownPlayer && (
+              {selectedEvent.status === "canceled" && (
+                <p className="rounded-xl border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+                  Este jogo está cancelado. A confirmação de presença e o sorteio estão
+                  indisponíveis.
+                </p>
+              )}
+              {ownPlayer && selectedEvent.status === "scheduled" && (
                 <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-primary" />
@@ -426,7 +580,7 @@ export function EventsStep({
                             <span className="text-xs text-muted-foreground">Você</span>
                           )}
                         </div>
-                        {isAdmin ? (
+                        {isAdmin && selectedEvent.status === "scheduled" ? (
                           <select
                             value={status}
                             disabled={busy || !row}
@@ -470,6 +624,29 @@ export function EventsStep({
           )}
         </section>
       </div>
+      <AlertDialog
+        open={pendingAction !== null}
+        onOpenChange={(open) => !open && setPendingAction(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingAction === "delete" ? "Excluir jogo?" : "Cancelar jogo?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingAction === "delete"
+                ? "A exclusão é irreversível e remove também todas as presenças deste jogo."
+                : "O jogo ficará indisponível para presença e sorteio, mas poderá ser reativado depois."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void runPendingAction()}>
+              {pendingAction === "delete" ? "Excluir definitivamente" : "Cancelar jogo"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }

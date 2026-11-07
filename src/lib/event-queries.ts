@@ -8,15 +8,20 @@ import {
   type NewFootballEvent,
 } from "./events";
 
-export async function listSectionEvents(sectionId: string): Promise<FootballEvent[]> {
-  const { data, error } = await supabase
+export async function listSectionEvents(
+  sectionId: string,
+  isAdmin = false,
+): Promise<FootballEvent[]> {
+  const query = supabase
     .from("events")
     .select(
       "id, section_id, title, starts_at, ends_at, modality, status, game_style_id, players_per_team, has_goalkeeper, defenders, midfielders, attackers",
     )
     .eq("section_id", sectionId)
-    .eq("status", "scheduled")
     .order("starts_at", { ascending: true });
+
+  if (!isAdmin) query.eq("status", "scheduled");
+  const { data, error } = await query;
 
   if (error) throw error;
   return data.map((event) => ({
@@ -30,7 +35,7 @@ export async function listSectionEvents(sectionId: string): Promise<FootballEven
       midfielders: event.midfielders,
       attackers: event.attackers,
     },
-    status: "scheduled",
+    status: event.status,
   }));
 }
 
@@ -59,6 +64,33 @@ export async function createFootballEvent(event: NewFootballEvent): Promise<stri
 
   if (error) throw error;
   return data;
+}
+
+export async function updateFootballEvent(event: NewFootballEvent & { id: string }): Promise<void> {
+  const { error } = await supabase.rpc("update_section_event", {
+    p_event_id: event.id,
+    p_title: event.title.trim(),
+    p_starts_at: event.starts_at,
+    p_ends_at: event.ends_at,
+    p_modality: event.modality,
+    p_game_style_id: event.game_style_id ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function cancelFootballEvent(eventId: string): Promise<void> {
+  const { error } = await supabase.rpc("cancel_section_event", { p_event_id: eventId });
+  if (error) throw error;
+}
+
+export async function reactivateFootballEvent(eventId: string): Promise<void> {
+  const { error } = await supabase.rpc("reactivate_section_event", { p_event_id: eventId });
+  if (error) throw error;
+}
+
+export async function deleteFootballEvent(eventId: string): Promise<void> {
+  const { error } = await supabase.rpc("delete_section_event", { p_event_id: eventId });
+  if (error) throw error;
 }
 
 export async function updateEventAttendance(
