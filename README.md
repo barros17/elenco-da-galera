@@ -5,7 +5,9 @@ Aplicativo para gerir seções, jogadores e sorteios equilibrados com autentica�
 - UI 100% em português do Brasil, mobile-first, no visual preto/amarelo/cinza/branco
 - Cadastro de jogadores por seção com cartas por faixa de overall
 - Seções com código de convite, admin e membros
-- Sorteio equilibrado com balanceamento de posição e goleiros
+- Jogos com modalidade futsal, fut7 ou futebol de campo e confirmação de presença por jogador
+- Administração da lista de presença e sorteio apenas entre jogadores confirmados
+- Dois times equilibrados em campos com escalações editáveis e reservas
 - Supabase como autenticação, banco e RLS
 - Fotos processadas no navegador e armazenadas em `photo_url`
 

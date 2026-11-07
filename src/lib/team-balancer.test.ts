@@ -64,4 +64,25 @@ describe("team balancer", () => {
       expect(goalkeepers.length).toBeLessThanOrEqual(1);
     }
   });
+
+  it("can draw exactly two teams and keep the remaining confirmed players as reserves", () => {
+    const players = Array.from({ length: 21 }, (_, index) =>
+      makePlayer(`p${index}`, index % 7 === 0 ? "GOL" : "MEI", 70 + (index % 20)),
+    );
+
+    const result = generateTeams(players, 7, { seed: 12, teamCount: 2 });
+
+    expect(result.teams).toHaveLength(2);
+    expect(result.teams.every((team) => team.players.length === 7)).toBe(true);
+    expect(result.reserves).toHaveLength(7);
+  });
+
+  it("does not create partial teams when an explicit two-team draw lacks enough players", () => {
+    const players = Array.from({ length: 13 }, (_, index) => makePlayer(`p${index}`, "MEI", 70));
+
+    const result = generateTeams(players, 7, { seed: 12, teamCount: 2 });
+
+    expect(result.teams).toHaveLength(0);
+    expect(result.reserves).toHaveLength(13);
+  });
 });

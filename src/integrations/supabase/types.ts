@@ -8,6 +8,96 @@ export type Database = {
   };
   public: {
     Tables: {
+      events: {
+        Row: {
+          canceled_at: string | null;
+          confirmation_deadline: string | null;
+          created_at: string;
+          created_by: string;
+          description: string | null;
+          ends_at: string;
+          id: string;
+          location_address: string | null;
+          location_link: string | null;
+          location_name: string;
+          modality: "futsal" | "fut7" | "campo11";
+          section_id: string;
+          starts_at: string;
+          status: "scheduled" | "canceled";
+          title: string;
+          updated_at: string;
+          vacancy_count: number;
+        };
+        Insert: {
+          canceled_at?: string | null;
+          confirmation_deadline?: string | null;
+          created_at?: string;
+          created_by: string;
+          description?: string | null;
+          ends_at: string;
+          id?: string;
+          location_address?: string | null;
+          location_link?: string | null;
+          location_name?: string;
+          modality: "futsal" | "fut7" | "campo11";
+          section_id: string;
+          starts_at: string;
+          status?: "scheduled" | "canceled";
+          title: string;
+          updated_at?: string;
+          vacancy_count?: number;
+        };
+        Update: {
+          canceled_at?: string | null;
+          confirmation_deadline?: string | null;
+          created_at?: string;
+          created_by?: string;
+          description?: string | null;
+          ends_at?: string;
+          id?: string;
+          location_address?: string | null;
+          location_link?: string | null;
+          location_name?: string;
+          modality?: "futsal" | "fut7" | "campo11";
+          section_id?: string;
+          starts_at?: string;
+          status?: "scheduled" | "canceled";
+          title?: string;
+          updated_at?: string;
+          vacancy_count?: number;
+        };
+        Relationships: [];
+      };
+      event_attendance: {
+        Row: {
+          event_id: string;
+          id: string;
+          player_id: string;
+          responded_at: string | null;
+          responded_by: string | null;
+          status: "PENDING" | "CONFIRMED" | "DECLINED";
+          waitlist_position: number | null;
+        };
+        Insert: {
+          event_id: string;
+          id?: string;
+          player_id: string;
+          responded_at?: string | null;
+          responded_by?: string | null;
+          status?: "PENDING" | "CONFIRMED" | "DECLINED";
+          waitlist_position?: number | null;
+        };
+        Update: {
+          event_id?: string;
+          id?: string;
+          player_id?: string;
+          responded_at?: string | null;
+          responded_by?: string | null;
+          status?: "PENDING" | "CONFIRMED" | "DECLINED";
+          waitlist_position?: number | null;
+        };
+        Relationships: [];
+      };
       players: {
         Row: {
           created_at: string;
@@ -136,6 +226,16 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      create_section_event: {
+        Args: {
+          p_ends_at: string;
+          p_modality: string;
+          p_section_id: string;
+          p_starts_at: string;
+          p_title: string;
+        };
+        Returns: string;
+      };
       create_section: {
         Args: { p_name: string };
         Returns: string;

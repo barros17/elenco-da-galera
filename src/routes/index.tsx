@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, LogOut, Trophy, UserPlus } from "lucide-react";
+import { CalendarCheck, ClipboardList, LogOut, Trophy, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
+import { EventsStep } from "@/components/EventsStep";
 import { PlayerForm } from "@/components/PlayerForm";
 import { PlayersGallery } from "@/components/PlayersGallery";
 import { SectionHub } from "@/components/SectionHub";
@@ -20,6 +21,18 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
 import { getMySection } from "@/lib/sections";
+import {
+  getConfirmedAttendance,
+  type AttendanceStatus,
+  type EventAttendance,
+  type NewFootballEvent,
+} from "@/lib/events";
+import {
+  createFootballEvent,
+  listEventAttendance,
+  listSectionEvents,
+  updateEventAttendance,
+} from "@/lib/event-queries";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -46,10 +59,14 @@ export const Route = createFileRoute("/")({
 const STEPS = [
   { id: 1, label: "Cadastro", icon: UserPlus },
   { id: 2, label: "Jogadores", icon: ClipboardList },
-  { id: 3, label: "Times", icon: Trophy },
+  { id: 3, label: "Presença", icon: CalendarCheck },
+  { id: 4, label: "Times", icon: Trophy },
 ] as const;
 
-function isMissingSectionPlayersTable(error: unknown): boolean {
+const EMPTY_PLAYERS: Player[] = [];
+const EMPTY_ATTENDANCE: EventAttendance[] = [];
+
+function isMissingDatabaseTable(error: unknown): boolean {
   return (
     error !== null &&
     typeof error === "object" &&
@@ -59,7 +76,7 @@ function isMissingSectionPlayersTable(error: unknown): boolean {
 }
 
 function Index() {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [editing, setEditing] = useState<Player | null>(null);
   const [creatingNew, setCreatingNew] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -105,7 +122,47 @@ function Index() {
     queryFn: () => listPlayers(section!.section_id),
     enabled: mounted && !!session && !!section,
   });
-  const players = playersQuery.data ?? [];
+  const players = playersQuery.data ?? EMPTY_PLAYERS;
+  const eventsQuery = useQuery({
+    queryKey: ["section-events", section?.section_id],
+    queryFn: () => listSectionEvents(section!.section_id),
+    enabled: mounted && !!session && !!section,
+    refetchInterval: 15_000,
+  });
+  const events = eventsQuery.data ?? [];
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!eventsQuery.data) return;
+    setSelectedEventId((current) =>
+      eventsQuery.data.some((event) => event.id === current)
+        ? current
+        : (eventsQuery.data[0]?.id ?? null),
+    );
+  }, [eventsQuery.data]);
+
+  const selectedEvent = events.find((event) => event.id === selectedEventId) ?? null;
+  const attendanceQuery = useQuery({
+    queryKey: ["event-attendance", selectedEvent?.id],
+    queryFn: () => listEventAttendance(selectedEvent!.id),
+    enabled: mounted && !!session && !!selectedEvent,
+    refetchInterval: 10_000,
+  });
+  const attendance = attendanceQuery.data ?? EMPTY_ATTENDANCE;
+  const confirmedPlayers = useMemo(() => {
+    const playersById = new Map(players.map((player) => [player.id, player]));
+    return getConfirmedAttendance(attendance)
+      .map((row) => playersById.get(row.player_id))
+      .filter((player): player is Player => player !== undefined);
+  }, [attendance, players]);
+  const handleCreateEvent = useCallback(
+    async (event: NewFootballEvent) => {
+      const eventId = await createFootballEvent(event);
+      await queryClient.invalidateQueries({ queryKey: ["section-events", event.section_id] });
+      setSelectedEventId(eventId);
+    },
+    [queryClient],
+  );
   const ownPlayer = players.find((player) => player.user_id === session?.user.id) ?? null;
   const isAdmin = section?.is_admin ?? false;
   const playerBeingEdited = creatingNew ? null : (editing ?? ownPlayer);
@@ -115,6 +172,7 @@ function Index() {
       queryClient.invalidateQueries({ queryKey: ["section"] }),
       queryClient.invalidateQueries({ queryKey: ["section-members"] }),
       queryClient.invalidateQueries({ queryKey: ["players"] }),
+      queryClient.invalidateQueries({ queryKey: ["event-attendance"] }),
     ]);
   }
 
@@ -280,7 +338,7 @@ function Index() {
         ) : playersQuery.isError ? (
           <div className="py-12 text-center">
             <p className="text-sm text-destructive">
-              {isMissingSectionPlayersTable(playersQuery.error)
+              {isMissingDatabaseTable(playersQuery.error)
                 ? "O banco de dados ainda não foi atualizado. Aplique a migration section_players para carregar os jogadores."
                 : "Não foi possível carregar os jogadores da seção."}
             </p>
@@ -335,10 +393,46 @@ function Index() {
               onDelete={(p) => removeMutation.mutate(p.id)}
             />
           </section>
+        ) : step === 3 ? (
+          <EventsStep
+            sectionId={section.section_id}
+            players={players}
+            currentUserId={session.user.id}
+            isAdmin={isAdmin}
+            events={events}
+            selectedEventId={selectedEventId}
+            attendance={attendance}
+            eventsLoading={eventsQuery.isLoading}
+            eventsError={eventsQuery.isError}
+            eventsErrorMessage={
+              isMissingDatabaseTable(eventsQuery.error)
+                ? "Aplique as migrations de eventos e presença no Supabase para habilitar os jogos."
+                : "Não foi possível carregar os jogos."
+            }
+            attendanceLoading={attendanceQuery.isLoading}
+            attendanceError={attendanceQuery.isError}
+            attendanceErrorMessage={
+              isMissingDatabaseTable(attendanceQuery.error)
+                ? "Aplique as migrations de eventos e presença no Supabase para habilitar as presenças."
+                : "Não foi possível carregar as presenças."
+            }
+            onSelectEvent={setSelectedEventId}
+            onCreateEvent={handleCreateEvent}
+            onSetAttendance={async (eventId, playerId, status: AttendanceStatus) => {
+              await updateEventAttendance(eventId, playerId, status);
+              await queryClient.invalidateQueries({ queryKey: ["event-attendance", eventId] });
+            }}
+            onRefreshEvents={() => void eventsQuery.refetch()}
+            onRefreshAttendance={() => void attendanceQuery.refetch()}
+          />
         ) : (
           <section className="animate-rise space-y-6">
-            <h2 className="font-display text-2xl text-foreground">Etapa 3 — Gerar times</h2>
-            <TeamsStep players={players} />
+            <TeamsStep
+              event={selectedEvent}
+              confirmedPlayers={confirmedPlayers}
+              attendanceLoading={attendanceQuery.isLoading}
+              attendanceError={attendanceQuery.isError}
+            />
           </section>
         )}
       </main>

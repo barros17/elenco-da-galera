@@ -93,6 +93,7 @@ export type Team = {
 export type GenerateTeamsOptions = {
   seed?: number | string;
   rng?: () => number;
+  teamCount?: number;
 };
 
 export type DrawResult = {
@@ -163,13 +164,16 @@ export function generateTeams(
   options: GenerateTeamsOptions = {},
 ): DrawResult {
   const rng = createRng(options.rng ?? options.seed);
-  const teamCount = Math.max(2, Math.floor(all.length / teamSize));
+  const teamCount = options.teamCount ?? Math.max(2, Math.floor(all.length / teamSize));
 
-  if (all.length === 0) {
+  if (all.length === 0 || !Number.isInteger(teamCount) || teamCount < 2) {
     return { teams: [], reserves: [], balance: 100, warnings: [] };
   }
 
-  if (all.length < teamSize || teamCount < 2) {
+  if (
+    all.length < teamSize ||
+    (options.teamCount !== undefined && all.length < teamSize * teamCount)
+  ) {
     return {
       teams: [],
       reserves: [...all],
