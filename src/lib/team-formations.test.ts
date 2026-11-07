@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Player } from "./players";
 import {
+  buildFormation,
   createInitialLineup,
   MODALITY_FORMATIONS,
   movePlayerToReserves,
@@ -91,5 +92,20 @@ describe("team formations", () => {
     });
     expect(benched.teams[0]?.[0]).toBeNull();
     expect(benched.reserves.map((player) => player.id)).toEqual(["one", "reserve"]);
+  });
+
+  it("builds custom formations from defensive, midfield and attack counts", () => {
+    const slots = buildFormation({
+      hasGoalkeeper: false,
+      defenders: 2,
+      midfielders: 3,
+      attackers: 2,
+    });
+
+    expect(slots).toHaveLength(7);
+    expect(slots.filter((slot) => slot.positions.includes("GOL")).length).toBe(0);
+    expect(slots.filter((slot) => slot.positions.includes("ATA")).length).toBe(2);
+    expect(slots[0]?.y).toBe(72);
+    expect(slots.at(-1)?.y).toBe(29);
   });
 });

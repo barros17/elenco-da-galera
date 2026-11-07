@@ -85,4 +85,52 @@ describe("team balancer", () => {
     expect(result.teams).toHaveLength(0);
     expect(result.reserves).toHaveLength(13);
   });
+
+  it("supports 3x3 draws without goalkeepers", () => {
+    const players = Array.from({ length: 12 }, (_, index) =>
+      makePlayer(`p${index}`, index % 3 === 0 ? "GOL" : index % 2 === 0 ? "ZAG" : "ATA", 70),
+    );
+
+    const result = generateTeams(players, 3, { seed: 7, hasGoalkeeper: false, teamCount: 2 });
+
+    expect(result.teams).toHaveLength(2);
+    expect(result.teams.every((team) => team.players.length === 3)).toBe(true);
+  });
+
+  it("supports 4x4 draws without goalkeepers and keeps goalkeepers as field players", () => {
+    const players = Array.from({ length: 16 }, (_, index) =>
+      makePlayer(`p${index}`, index % 4 === 0 ? "GOL" : "MEI", 71 + index),
+    );
+
+    const result = generateTeams(players, 4, { seed: 11, hasGoalkeeper: false, teamCount: 2 });
+
+    expect(result.teams).toHaveLength(2);
+    expect(result.teams.every((team) => team.players.length === 4)).toBe(true);
+    expect(result.teams.flatMap((team) => team.players).length).toBe(8);
+  });
+
+  it("supports 6x6 custom teams with goalkeepers", () => {
+    const players = Array.from({ length: 12 }, (_, index) =>
+      makePlayer(`p${index}`, index % 6 === 0 ? "GOL" : "MEI", 72 + index),
+    );
+
+    const result = generateTeams(players, 6, { seed: 13, teamCount: 2 });
+
+    expect(result.teams).toHaveLength(2);
+    expect(result.teams.every((team) => team.players.length === 6)).toBe(true);
+    expect(
+      result.teams.every(
+        (team) => team.players.filter((player) => player.position === "GOL").length <= 1,
+      ),
+    ).toBe(true);
+  });
+
+  it("does not create teams when a custom draw is below the minimum threshold", () => {
+    const players = Array.from({ length: 5 }, (_, index) => makePlayer(`p${index}`, "MEI", 70));
+
+    const result = generateTeams(players, 6, { seed: 5, hasGoalkeeper: false, teamCount: 2 });
+
+    expect(result.teams).toHaveLength(0);
+    expect(result.reserves).toHaveLength(5);
+  });
 });

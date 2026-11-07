@@ -94,6 +94,7 @@ export type GenerateTeamsOptions = {
   seed?: number | string;
   rng?: () => number;
   teamCount?: number;
+  hasGoalkeeper?: boolean;
 };
 
 export type DrawResult = {
@@ -149,12 +150,14 @@ function stdDev(values: number[]) {
   return Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / values.length);
 }
 
-function cost(teams: Player[][], jitter: number, rng: () => number) {
+function cost(teams: Player[][], jitter: number, rng: () => number, hasGoalkeeper = true) {
   const base = stdDev(teams.map(sum));
   const defs = stdDev(teams.map((t) => t.filter((p) => isDefender(p.position)).length));
   const mids = stdDev(teams.map((t) => t.filter((p) => isMid(p.position)).length));
   const atks = stdDev(teams.map((t) => t.filter((p) => isAttacker(p.position)).length));
-  const gks = stdDev(teams.map((t) => t.filter((p) => p.position === "GOL").length));
+  const gks = hasGoalkeeper
+    ? stdDev(teams.map((t) => t.filter((p) => p.position === "GOL").length))
+    : 0;
   return base + 2.5 * (defs + mids + atks) + 4 * gks + jitter * (rng() - 0.5) * 2;
 }
 
@@ -164,6 +167,7 @@ export function generateTeams(
   options: GenerateTeamsOptions = {},
 ): DrawResult {
   const rng = createRng(options.rng ?? options.seed);
+  const hasGoalkeeper = options.hasGoalkeeper ?? true;
   const teamCount = options.teamCount ?? Math.max(2, Math.floor(all.length / teamSize));
 
   if (all.length === 0 || !Number.isInteger(teamCount) || teamCount < 2) {
@@ -182,17 +186,21 @@ export function generateTeams(
     };
   }
 
-  const keepers = shuffle(
-    all.filter((p) => p.position === "GOL"),
-    rng,
-  ).sort((a, b) => b.overall - a.overall);
+  const keepers = hasGoalkeeper
+    ? shuffle(
+        all.filter((p) => p.position === "GOL"),
+        rng,
+      ).sort((a, b) => b.overall - a.overall)
+    : [];
   const others = shuffle(
-    all.filter((p) => p.position !== "GOL"),
+    all.filter((p) => (hasGoalkeeper ? p.position !== "GOL" : true)),
     rng,
   ).sort((a, b) => b.overall - a.overall);
   const buckets: Player[][] = Array.from({ length: teamCount }, () => []);
 
-  keepers.slice(0, teamCount).forEach((gk, i) => buckets[i]!.push(gk));
+  if (hasGoalkeeper) {
+    keepers.slice(0, teamCount).forEach((gk, i) => buckets[i]!.push(gk));
+  }
 
   const reservePool = [...others, ...keepers.slice(teamCount)].sort(
     (a, b) => b.overall - a.overall,
@@ -202,7 +210,7 @@ export function generateTeams(
   const reserves: Player[] = [];
 
   for (const player of reservePool) {
-    const prefersGoalkeeperSlot = player.position === "GOL";
+    const prefersGoalkeeperSlot = hasGoalkeeper && player.position === "GOL";
     let attempts = 0;
     while (attempts < teamCount * 4) {
       const targetIndex = prefersGoalkeeperSlot
@@ -216,6 +224,7 @@ export function generateTeams(
       const selectedIndex = targetIndex >= 0 ? targetIndex : idx;
       if (buckets[selectedIndex]!.length < teamSize) {
         const wouldBreakGkLimit =
+          hasGoalkeeper &&
           player.position === "GOL" &&
           buckets[selectedIndex]!.some((member) => member.position === "GOL");
         if (!wouldBreakGkLimit) {
@@ -236,7 +245,7 @@ export function generateTeams(
   }
 
   const jitter = 0.6;
-  let current = cost(buckets, 0, rng);
+  let current = cost(buckets, 0, rng, hasGoalkeeper);
   for (let it = 0; it < 2000; it++) {
     const a = Math.floor(rng() * teamCount);
     let b = Math.floor(rng() * teamCount);
@@ -254,11 +263,11 @@ export function generateTeams(
 
     const gkCountA = nextA.filter((player) => player.position === "GOL").length;
     const gkCountB = nextB.filter((player) => player.position === "GOL").length;
-    if (gkCountA > 1 || gkCountB > 1) continue;
+    if (hasGoalkeeper && (gkCountA > 1 || gkCountB > 1)) continue;
 
     buckets[a]![ia] = pb;
     buckets[b]![ib] = pa;
-    const next = cost(buckets, it < 400 ? jitter : 0, rng);
+    const next = cost(buckets, it < 400 ? jitter : 0, rng, hasGoalkeeper);
     if (next <= current) {
       current = next;
     } else {
@@ -268,11 +277,15 @@ export function generateTeams(
   }
 
   const warnings: string[] = [];
-  const emptyGkTeams = buckets
-    .map((team, index) =>
-      team.filter((player) => player.position === "GOL").length === 0 ? `Time ${index + 1}` : null,
-    )
-    .filter(Boolean) as string[];
+  const emptyGkTeams = hasGoalkeeper
+    ? (buckets
+        .map((team, index) =>
+          team.filter((player) => player.position === "GOL").length === 0
+            ? `Time ${index + 1}`
+            : null,
+        )
+        .filter(Boolean) as string[])
+    : [];
   if (emptyGkTeams.length > 0) warnings.push(`Sem goleiro em: ${emptyGkTeams.join(", ")}.`);
   if (reserves.length > 0) warnings.push(`${reserves.length} reserva(s) ficaram fora do sorteio.`);
 

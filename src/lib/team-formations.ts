@@ -9,6 +9,81 @@ export type FormationSlot = {
   y: number;
 };
 
+export type FormationCounts = {
+  hasGoalkeeper: boolean;
+  defenders: number;
+  midfielders: number;
+  attackers: number;
+};
+
+export function buildFormation({
+  hasGoalkeeper,
+  defenders,
+  midfielders,
+  attackers,
+}: FormationCounts): FormationSlot[] {
+  const rows: Array<{
+    id: string;
+    label: string;
+    positions: Position[];
+    count: number;
+    y: number;
+  }> = [
+    {
+      id: "gk",
+      label: "Goleiro",
+      positions: ["GOL"] as Position[],
+      count: hasGoalkeeper ? 1 : 0,
+      y: 90,
+    },
+    {
+      id: "def",
+      label: "Zagueiro",
+      positions: ["ZAG", "LAT"] as Position[],
+      count: defenders,
+      y: 72,
+    },
+    {
+      id: "mid",
+      label: "Meia",
+      positions: ["MEI", "VOL"] as Position[],
+      count: midfielders,
+      y: 52,
+    },
+    { id: "atk", label: "Atacante", positions: ["ATA"] as Position[], count: attackers, y: 29 },
+  ].filter((row) => row.count > 0);
+  const slots: FormationSlot[] = [];
+  for (const row of rows) {
+    for (let index = 0; index < row.count; index++) {
+      const label =
+        row.id === "def"
+          ? index === 0
+            ? "Zagueiro"
+            : "Lateral"
+          : row.id === "mid"
+            ? index === 0
+              ? "Volante"
+              : "Meia"
+            : row.label;
+
+      const effectiveCount = row.count === 1 ? 1 : row.count;
+      const x = 10 + ((index + 0.5) * 80) / effectiveCount;
+      slots.push({
+        id: `${row.id}-${index + 1}`,
+        label,
+        positions: row.positions,
+        x,
+        y: row.y,
+      });
+    }
+  }
+
+  return slots;
+}
+
+export const generateFormation = buildFormation;
+export const createFormation = buildFormation;
+
 export const MODALITY_FORMATIONS: Record<
   GameModality,
   { label: string; format: string; teamSize: number; slots: FormationSlot[] }
