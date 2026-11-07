@@ -28,6 +28,11 @@ $$;
 set local role authenticated;
 select set_config('request.jwt.claim.role', 'authenticated', true);
 select set_config('request.jwt.claim.sub', current_setting('test_styles.admin_id'), true);
+select set_config(
+  'request.jwt.claims',
+  json_build_object('role', 'authenticated', 'sub', current_setting('test_styles.admin_id'))::text,
+  true
+);
 
 do $$
 declare
@@ -61,6 +66,11 @@ end;
 $$;
 
 select set_config('request.jwt.claim.sub', current_setting('test_styles.member_id'), true);
+select set_config(
+  'request.jwt.claims',
+  json_build_object('role', 'authenticated', 'sub', current_setting('test_styles.member_id'))::text,
+  true
+);
 do $$
 declare rejected boolean := false;
 begin
@@ -77,6 +87,11 @@ end;
 $$;
 
 select set_config('request.jwt.claim.sub', current_setting('test_styles.other_admin_id'), true);
+select set_config(
+  'request.jwt.claims',
+  json_build_object('role', 'authenticated', 'sub', current_setting('test_styles.other_admin_id'))::text,
+  true
+);
 do $$
 declare rejected boolean := false;
 begin
