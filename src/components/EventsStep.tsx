@@ -413,12 +413,12 @@ export function EventsStep({
                 required
               />
             </div>
-            <div className="flex items-end">
+            <div className="flex flex-col items-stretch gap-2">
               <Button className="w-full" disabled={busy}>
                 {editingEventId ? "Salvar alterações" : "Criar jogo"}
               </Button>
               {editingEventId && (
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button className="w-full" type="button" variant="outline" onClick={resetForm}>
                   Cancelar edição
                 </Button>
               )}
