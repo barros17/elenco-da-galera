@@ -54,6 +54,12 @@ jobs:
       - name: Install PostgreSQL client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
+      - name: Prepare Supabase test stubs
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql --host localhost --port 5432 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/_stub_supabase.sql
+
       - name: Apply migrations
         env:
           PGPASSWORD: postgres
@@ -68,6 +74,9 @@ jobs:
           PGPASSWORD: postgres
         run: |
           for test_file in supabase/tests/*.sql; do
+            if [ "$(basename "$test_file")" = "_stub_supabase.sql" ]; then
+              continue
+            fi
             echo "Running $test_file"
             psql --host localhost --port 5432 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file "$test_file"
           done

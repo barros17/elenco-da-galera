@@ -24,6 +24,15 @@ Aplicativo para gerir seções, jogadores e sorteios equilibrados com autentica�
 - Bun 1.2.18 (preferencial) ou npm
 - Projeto Supabase com as migrations em `supabase/migrations`
 
+## Testes SQL na CI
+
+O job `sql-tests` aplica todas as migrations em um container `supabase/postgres`
+e executa os arquivos de `supabase/tests`. O arquivo
+`supabase/tests/_stub_supabase.sql` é aplicado antes das migrations para
+normalizar o contrato mínimo do schema `storage` entre versões da imagem; ele
+é somente um stub de teste e não deve ser aplicado no projeto Supabase de
+produção.
+
 ## Variáveis de ambiente
 
 Copie o arquivo de exemplo e ajuste os valores locais:
