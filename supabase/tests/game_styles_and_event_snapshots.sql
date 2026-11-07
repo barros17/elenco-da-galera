@@ -58,7 +58,21 @@ declare
   style_id uuid; foreign_style_id uuid; v_event_id uuid; v_protected_id uuid; attendance_count integer; rejected boolean; snapshot record;
 begin
   style_id := public.create_game_style(current_setting('test_styles.section_id')::uuid, '4x4 sem goleiro', 4, false, 1, 2, 1);
+
+  perform set_config('request.jwt.claim.sub', current_setting('test_styles.other_admin_id'), false);
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object('role', 'authenticated', 'sub', current_setting('test_styles.other_admin_id'))::text,
+    false
+  );
   foreign_style_id := public.create_game_style(current_setting('test_styles.other_section_id')::uuid, 'Estilo externo', 4, false, 1, 2, 1);
+
+  perform set_config('request.jwt.claim.sub', current_setting('test_styles.admin_id'), false);
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object('role', 'authenticated', 'sub', current_setting('test_styles.admin_id'))::text,
+    false
+  );
   v_event_id := public.create_section_event(current_setting('test_styles.section_id')::uuid, 'Jogo custom', now() + interval '1 day', now() + interval '1 day 2 hours', 'custom', style_id);
   select count(*) into attendance_count from public.event_attendance ea where ea.event_id = v_event_id;
   if attendance_count <> 1 then raise exception 'Criar jogo não criou a presença inicial.'; end if;
