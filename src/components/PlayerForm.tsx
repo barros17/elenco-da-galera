@@ -101,8 +101,13 @@ export function PlayerForm({ editing, canCancel, onSubmit, onDone, onCancelEdit 
         setSkills(defaultSkills(position));
       }
       onDone?.(saved);
-    } catch {
-      toast.error("Não conseguimos salvar o jogador. Tente novamente.");
+    } catch (error) {
+      console.error("Player save failed:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Não conseguimos salvar o jogador. Tente novamente.",
+      );
     } finally {
       setSaving(false);
     }

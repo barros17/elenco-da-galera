@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { removeStoredPlayerPhotos, uploadPlayerPhoto } from "@/lib/photo-storage";
 import { calcOverall, clampWeakFoot, type Player, type Position, type Skills } from "./players";
 
 export type PlayerInput = {
@@ -81,6 +82,7 @@ export async function createPlayer(
   const userId = await requireUserId();
   const { linkToSelf = true } = options;
   const payload = sanitizePlayerPayload(input.position, input.skills, input.weak_foot);
+  const photoIsDataUrl = input.photo_url?.startsWith("data:") ?? false;
 
   const { data, error } = await supabase
     .from(TABLE)
@@ -89,7 +91,7 @@ export async function createPlayer(
       user_id: linkToSelf ? userId : null,
       created_by: userId,
       name: input.name.trim(),
-      photo_url: input.photo_url,
+      photo_url: photoIsDataUrl ? null : input.photo_url,
       position: input.position,
       skills: payload.skills,
       weak_foot: payload.weak_foot,
@@ -97,7 +99,38 @@ export async function createPlayer(
     .select("*")
     .single();
   if (error) throw error;
-  return normalize(data);
+  if (!photoIsDataUrl || !input.photo_url) return normalize(data);
+
+  let uploadedPath: string | null = null;
+  try {
+    uploadedPath = await uploadPlayerPhoto(input.photo_url, sectionId, data.id);
+    const { data: updated, error: updateError } = await supabase
+      .from(TABLE)
+      .update({ photo_url: uploadedPath })
+      .eq("id", data.id)
+      .eq("section_id", sectionId)
+      .select("*")
+      .single();
+    if (updateError) throw updateError;
+    return normalize(updated);
+  } catch (uploadError) {
+    const cleanupErrors: unknown[] = [];
+    if (uploadedPath) {
+      try {
+        await removeStoredPlayerPhotos([uploadedPath]);
+      } catch (cleanupError) {
+        cleanupErrors.push(cleanupError);
+      }
+    }
+
+    const { error: deleteError } = await supabase.from(TABLE).delete().eq("id", data.id);
+    if (deleteError) cleanupErrors.push(deleteError);
+    if (cleanupErrors.length > 0) {
+      console.error("Could not clean up a player after photo upload failure:", cleanupErrors);
+      throw new Error("A foto falhou e não foi possível limpar completamente o jogador criado.");
+    }
+    throw uploadError;
+  }
 }
 
 /** Quem pode editar é decidido pelo banco: o dono da carta ou o administrador da seção. */
@@ -107,12 +140,29 @@ export async function updatePlayer(
   sectionId: string,
 ): Promise<Player> {
   const payload = sanitizePlayerPayload(input.position, input.skills, input.weak_foot);
+  const { data: current, error: currentError } = await supabase
+    .from(TABLE)
+    .select("photo_url")
+    .eq("id", id)
+    .eq("section_id", sectionId)
+    .single();
+  if (currentError) throw currentError;
+
+  const oldPhotoUrl = current.photo_url;
+  const photoIsDataUrl =
+    input.photo_url?.startsWith("data:") === true && input.photo_url !== oldPhotoUrl;
+  let nextPhotoUrl = input.photo_url;
+  let uploadedPath: string | null = null;
+  if (photoIsDataUrl && input.photo_url) {
+    uploadedPath = await uploadPlayerPhoto(input.photo_url, sectionId, id);
+    nextPhotoUrl = uploadedPath;
+  }
 
   const { data, error } = await supabase
     .from(TABLE)
     .update({
       name: input.name.trim(),
-      photo_url: input.photo_url,
+      photo_url: nextPhotoUrl,
       position: input.position,
       skills: payload.skills,
       weak_foot: payload.weak_foot,
@@ -121,11 +171,38 @@ export async function updatePlayer(
     .eq("section_id", sectionId)
     .select("*")
     .single();
-  if (error) throw error;
+  if (error) {
+    if (uploadedPath && uploadedPath !== oldPhotoUrl) {
+      try {
+        await removeStoredPlayerPhotos([uploadedPath]);
+      } catch (cleanupError) {
+        console.error("Could not clean up an unreferenced player photo:", cleanupError);
+        throw new Error("A foto foi enviada, mas não foi possível limpar o arquivo temporário.");
+      }
+    }
+    throw error;
+  }
+  if (oldPhotoUrl !== nextPhotoUrl) {
+    try {
+      await removeStoredPlayerPhotos([oldPhotoUrl]);
+    } catch (cleanupError) {
+      console.error("Player was saved, but its previous photo could not be removed:", cleanupError);
+      throw new Error("Jogador salvo, mas a foto anterior não foi removida do Storage.");
+    }
+  }
   return normalize(data);
 }
 
 export async function deletePlayer(id: string, sectionId: string): Promise<void> {
+  const { data: player, error: playerError } = await supabase
+    .from(TABLE)
+    .select("photo_url")
+    .eq("id", id)
+    .eq("section_id", sectionId)
+    .single();
+  if (playerError) throw playerError;
+  await removeStoredPlayerPhotos([player.photo_url]);
+
   const { data, error } = await supabase
     .from(TABLE)
     .delete()

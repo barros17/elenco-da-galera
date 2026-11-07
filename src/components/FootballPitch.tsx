@@ -1,6 +1,7 @@
 import { UserRound } from "lucide-react";
 import type { Player } from "@/lib/players";
 import type { FormationSlot } from "@/lib/team-formations";
+import { PlayerPhoto } from "@/components/PlayerPhoto";
 
 type Props = {
   teamIndex: number;
@@ -70,16 +71,15 @@ export function FootballPitch({
               {player ? (
                 <>
                   <span className="flex w-full items-center gap-1">
-                    {player.photo_url ? (
-                      <img
-                        src={player.photo_url}
-                        alt=""
-                        aria-hidden="true"
-                        className="h-5 w-5 shrink-0 rounded-full object-cover"
-                      />
-                    ) : (
-                      <UserRound className="h-5 w-5 shrink-0 rounded-full bg-white/15 p-0.5" />
-                    )}
+                    <PlayerPhoto
+                      photoUrl={player.photo_url}
+                      alt=""
+                      ariaHidden
+                      className="h-5 w-5 shrink-0 rounded-full object-cover"
+                      fallback={
+                        <UserRound className="h-5 w-5 shrink-0 rounded-full bg-white/15 p-0.5" />
+                      }
+                    />
                     <span className="min-w-0 flex-1 truncate text-[9px] font-bold">
                       {player.name}
                     </span>

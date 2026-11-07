@@ -1,9 +1,19 @@
 import { useState } from "react";
-import { CalendarDays, Check, CircleHelp, Plus, RefreshCw, Users, X } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  CircleHelp,
+  Plus,
+  RefreshCw,
+  UserRound,
+  Users,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PlayerPhoto } from "@/components/PlayerPhoto";
 import type { Player } from "@/lib/players";
 import {
   type AttendanceStatus,
@@ -372,7 +382,20 @@ export function EventsStep({
                         className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border px-3 py-2"
                       >
                         <div className="min-w-0">
-                          <span className="block truncate text-sm font-medium">{player.name}</span>
+                          <span className="flex items-center gap-2">
+                            <PlayerPhoto
+                              photoUrl={player.photo_url}
+                              alt=""
+                              ariaHidden
+                              className="h-8 w-8 shrink-0 rounded-full object-cover"
+                              fallback={
+                                <UserRound className="h-8 w-8 shrink-0 rounded-full bg-muted p-1.5 text-muted-foreground" />
+                              }
+                            />
+                            <span className="block truncate text-sm font-medium">
+                              {player.name}
+                            </span>
+                          </span>
                           {player.user_id === currentUserId && (
                             <span className="text-xs text-muted-foreground">Você</span>
                           )}

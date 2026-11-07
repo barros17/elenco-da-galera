@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { removeSectionPlayerPhotos } from "@/lib/photo-storage";
 
 export type Section = {
   section_id: string;
@@ -42,11 +43,18 @@ export async function joinSection(inviteCode: string): Promise<void> {
 }
 
 export async function leaveSection(sectionId: string): Promise<void> {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) throw sessionError;
+  const userId = sessionData.session?.user.id;
+  if (!userId) throw new Error("Faça login para sair da seção.");
+  await removeSectionPlayerPhotos(sectionId, userId);
+
   const { error } = await supabase.rpc("leave_section", { p_section_id: sectionId });
   if (error) throw error;
 }
 
 export async function removeSectionMember(sectionId: string, userId: string): Promise<void> {
+  await removeSectionPlayerPhotos(sectionId, userId);
   const { error } = await supabase.rpc("remove_section_member", {
     p_section_id: sectionId,
     p_user_id: userId,
@@ -55,6 +63,7 @@ export async function removeSectionMember(sectionId: string, userId: string): Pr
 }
 
 export async function deleteSection(sectionId: string): Promise<void> {
+  await removeSectionPlayerPhotos(sectionId);
   const { error } = await supabase.rpc("delete_section", { p_section_id: sectionId });
   if (error) throw error;
 }

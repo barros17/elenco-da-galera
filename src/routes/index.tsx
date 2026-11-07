@@ -182,7 +182,10 @@ function Index() {
       void refreshSectionData();
       toast.success("Jogador excluído.");
     },
-    onError: () => toast.error("Não foi possível excluir o jogador."),
+    onError: (error) => {
+      console.error("Player deletion failed:", error);
+      toast.error(error instanceof Error ? error.message : "Não foi possível excluir o jogador.");
+    },
   });
 
   async function handleSubmit(input: PlayerInput) {
@@ -193,6 +196,11 @@ function Index() {
           // Administrador adicionando um jogador extra: não fica vinculado a ninguém.
           linkToSelf: !(isAdmin && creatingNew),
         });
+    if (playerBeingEdited?.photo_url && playerBeingEdited.photo_url === saved.photo_url) {
+      await queryClient.invalidateQueries({
+        queryKey: ["player-photo-signed-url", playerBeingEdited.photo_url],
+      });
+    }
     await refreshSectionData();
     return saved;
   }

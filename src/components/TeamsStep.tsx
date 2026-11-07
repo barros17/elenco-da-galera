@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FootballPitch } from "@/components/FootballPitch";
+import { PlayerPhoto } from "@/components/PlayerPhoto";
 import type { FootballEvent } from "@/lib/events";
 import type { Player } from "@/lib/players";
 import {
@@ -363,18 +364,17 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
                           : "border-border bg-card hover:border-primary/50"
                       }`}
                     >
-                      {player.photo_url ? (
-                        <img
-                          src={player.photo_url}
-                          alt=""
-                          aria-hidden="true"
-                          className="h-8 w-8 rounded-full object-cover"
-                        />
-                      ) : (
-                        <span className="grid h-8 w-8 place-items-center rounded-full bg-muted font-bold">
-                          {player.overall}
-                        </span>
-                      )}
+                      <PlayerPhoto
+                        photoUrl={player.photo_url}
+                        alt=""
+                        ariaHidden
+                        className="h-8 w-8 rounded-full object-cover"
+                        fallback={
+                          <span className="grid h-8 w-8 place-items-center rounded-full bg-muted font-bold">
+                            {player.overall}
+                          </span>
+                        }
+                      />
                       <span className="min-w-0 flex-1 truncate font-semibold">{player.name}</span>
                       <span className="text-xs text-primary">{player.position}</span>
                     </button>

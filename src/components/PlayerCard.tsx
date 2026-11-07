@@ -1,6 +1,7 @@
 import { Star, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { calcOverall, skillSetFor, tierFor, type Position, type Skills } from "@/lib/players";
+import { PlayerPhoto } from "@/components/PlayerPhoto";
 
 const TIER_CLASS: Record<string, string> = {
   bronze: "player-card-bronze",
@@ -58,15 +59,12 @@ export function PlayerCard({
         <div className="player-card-facets pointer-events-none absolute inset-0" />
 
         <div className="absolute inset-x-0 top-0 h-[62%] overflow-hidden bg-muted/25">
-          {photoUrl ? (
-            <img
-              src={photoUrl}
-              alt={name}
-              className="h-full w-full object-cover object-center drop-shadow-xl"
-            />
-          ) : (
-            <UserRound className="mx-auto h-full w-[72%] opacity-25" strokeWidth={1.1} />
-          )}
+          <PlayerPhoto
+            photoUrl={photoUrl ?? null}
+            alt={name}
+            className="h-full w-full object-cover object-center drop-shadow-xl"
+            fallback={<UserRound className="mx-auto h-full w-[72%] opacity-25" strokeWidth={1.1} />}
+          />
           <div className="player-card-photo-fade absolute inset-0" />
         </div>
 
