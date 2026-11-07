@@ -7,7 +7,15 @@ export type AttendanceRow = {
   responded_at: string | null;
 };
 
-export type GameModality = "futsal" | "fut7" | "campo11";
+export type GameModality = "futsal" | "fut7" | "campo11" | "custom";
+
+export type EventFormationSnapshot = {
+  players_per_team: number;
+  has_goalkeeper: boolean;
+  defenders: number;
+  midfielders: number;
+  attackers: number;
+};
 
 export type FootballEvent = {
   id: string;
@@ -16,6 +24,8 @@ export type FootballEvent = {
   starts_at: string;
   ends_at: string;
   modality: GameModality;
+  game_style_id: string | null;
+  formation: EventFormationSnapshot;
   status: "scheduled" | "canceled";
 };
 
@@ -28,10 +38,11 @@ export type EventAttendance = AttendanceRow & {
 export type NewFootballEvent = Pick<
   FootballEvent,
   "section_id" | "title" | "starts_at" | "ends_at" | "modality"
->;
+> & { game_style_id?: string | null };
 
 export function normalizeGameModality(value: string): GameModality {
-  if (value === "futsal" || value === "fut7" || value === "campo11") return value;
+  if (value === "futsal" || value === "fut7" || value === "campo11" || value === "custom")
+    return value;
   throw new Error(`Modalidade de jogo inválida: ${value}`);
 }
 

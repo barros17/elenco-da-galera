@@ -11,7 +11,9 @@ import {
 export async function listSectionEvents(sectionId: string): Promise<FootballEvent[]> {
   const { data, error } = await supabase
     .from("events")
-    .select("id, section_id, title, starts_at, ends_at, modality, status")
+    .select(
+      "id, section_id, title, starts_at, ends_at, modality, status, game_style_id, players_per_team, has_goalkeeper, defenders, midfielders, attackers",
+    )
     .eq("section_id", sectionId)
     .eq("status", "scheduled")
     .order("starts_at", { ascending: true });
@@ -20,6 +22,14 @@ export async function listSectionEvents(sectionId: string): Promise<FootballEven
   return data.map((event) => ({
     ...event,
     modality: normalizeGameModality(event.modality),
+    game_style_id: event.game_style_id,
+    formation: {
+      players_per_team: event.players_per_team,
+      has_goalkeeper: event.has_goalkeeper,
+      defenders: event.defenders,
+      midfielders: event.midfielders,
+      attackers: event.attackers,
+    },
     status: "scheduled",
   }));
 }
@@ -44,6 +54,7 @@ export async function createFootballEvent(event: NewFootballEvent): Promise<stri
     p_starts_at: event.starts_at,
     p_ends_at: event.ends_at,
     p_modality: event.modality,
+    p_game_style_id: event.game_style_id ?? null,
   });
 
   if (error) throw error;

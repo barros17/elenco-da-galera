@@ -8,6 +8,8 @@ import { FootballPitch } from "@/components/FootballPitch";
 import { PlayerPhoto } from "@/components/PlayerPhoto";
 import type { FootballEvent } from "@/lib/events";
 import type { Player } from "@/lib/players";
+import { buildFormation } from "@/lib/team-formations";
+import { missingConfirmedPlayers } from "@/lib/game-style-utils";
 import {
   DEFAULT_COLOR,
   TEAM_COLORS,
@@ -17,12 +19,7 @@ import {
   teamSum,
   type DrawResult,
 } from "@/lib/team-balancer";
-import {
-  createInitialLineup,
-  MODALITY_FORMATIONS,
-  movePlayerToReserves,
-  movePlayerToSlot,
-} from "@/lib/team-formations";
+import { createInitialLineup, movePlayerToReserves, movePlayerToSlot } from "@/lib/team-formations";
 
 type SelectedLocation =
   | { type: "field"; teamIndex: number; slotIndex: number }
@@ -47,7 +44,19 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
   const [selected, setSelected] = useState<SelectedLocation | null>(null);
   const [downloading, setDownloading] = useState(false);
   const boardRef = useRef<HTMLDivElement>(null);
-  const formation = event ? MODALITY_FORMATIONS[event.modality] : null;
+  const formation = event
+    ? {
+        slots: buildFormation({
+          hasGoalkeeper: event.formation.has_goalkeeper,
+          defenders: event.formation.defenders,
+          midfielders: event.formation.midfielders,
+          attackers: event.formation.attackers,
+        }),
+        teamSize: event.formation.players_per_team,
+        label: event.modality === "custom" ? "Estilo personalizado" : event.modality,
+        format: `${event.formation.defenders}-${event.formation.midfielders}-${event.formation.attackers}`,
+      }
+    : null;
   const drawKey = `${event?.id ?? ""}:${confirmedPlayers
     .map((player) => player.id)
     .sort()
@@ -69,7 +78,7 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
     return balanceScore(teams);
   }, [layout, result]);
 
-  function draw() {
+  function draw(withCurrent = false) {
     if (!event || !formation) {
       toast.error("Selecione um jogo na etapa Presença antes de gerar os times.");
       return;
@@ -82,14 +91,23 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
       toast.error("Não foi possível carregar as presenças. Atualize a etapa Presença.");
       return;
     }
-    if (confirmedPlayers.length < formation.teamSize * 2) {
+    const effectiveTeamSize = withCurrent
+      ? Math.floor(confirmedPlayers.length / 2)
+      : formation.teamSize;
+    if (
+      effectiveTeamSize < 2 ||
+      (!withCurrent && confirmedPlayers.length < formation.teamSize * 2)
+    ) {
       toast.error(
         `São necessários ${formation.teamSize * 2} jogadores confirmados para formar dois times de ${formation.teamSize}.`,
       );
       return;
     }
 
-    const nextResult = generateTeams(confirmedPlayers, formation.teamSize, { teamCount: 2 });
+    const nextResult = generateTeams(confirmedPlayers, effectiveTeamSize, {
+      teamCount: 2,
+      hasGoalkeeper: event.formation.has_goalkeeper,
+    });
     if (nextResult.teams.length !== 2) {
       toast.error("Não foi possível formar dois times completos com os confirmados.");
       return;
@@ -98,7 +116,14 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
     setResult(nextResult);
     setNames(nextResult.teams.map((team) => team.name));
     setLayout({
-      teams: nextResult.teams.map((team) => createInitialLineup(team.players, event.modality)),
+      teams: nextResult.teams.map((team) =>
+        createInitialLineup(team.players, {
+          hasGoalkeeper: event.formation.has_goalkeeper,
+          defenders: event.formation.defenders,
+          midfielders: event.formation.midfielders,
+          attackers: event.formation.attackers,
+        }),
+      ),
       reserves: nextResult.reserves,
     });
     setSelected(null);
@@ -226,18 +251,35 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
                   ? `${formation.label} · ${formation.format} · ${formation.teamSize} por time · ${confirmedPlayers.length} confirmados`
                   : "Crie ou selecione um jogo na etapa Presença."}
           </p>
+          {event && formation && confirmedPlayers.length < formation.teamSize * 2 && (
+            <p className="mt-2 text-sm font-semibold text-primary">
+              Faltam {missingConfirmedPlayers(formation.teamSize, confirmedPlayers.length)}{" "}
+              confirmados para sortear (precisa de {formation.teamSize * 2}).
+            </p>
+          )}
         </div>
         <div className="ml-auto flex gap-2">
           <Button
-            onClick={draw}
+            onClick={() => draw()}
             size="lg"
             disabled={!event || attendanceLoading || attendanceError || !formation}
           >
             <Dices className="mr-2 h-4 w-4" />
             Gerar dois times
           </Button>
+          {event && formation && confirmedPlayers.length < formation.teamSize * 2 && (
+            <Button
+              onClick={() => draw(true)}
+              size="lg"
+              variant="secondary"
+              disabled={confirmedPlayers.length < 4}
+            >
+              <Dices className="mr-2 h-4 w-4" />
+              Sortear com os confirmados atuais
+            </Button>
+          )}
           {result && (
-            <Button onClick={draw} size="lg" variant="secondary">
+            <Button onClick={() => draw()} size="lg" variant="secondary">
               <Shuffle className="mr-2 h-4 w-4" />
               Sortear novamente
             </Button>

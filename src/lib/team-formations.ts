@@ -16,6 +16,10 @@ export type FormationCounts = {
   attackers: number;
 };
 
+export type FormationDefinition = FormationCounts & {
+  playersPerTeam: number;
+};
+
 export function buildFormation({
   hasGoalkeeper,
   defenders,
@@ -57,11 +61,11 @@ export function buildFormation({
     for (let index = 0; index < row.count; index++) {
       const label =
         row.id === "def"
-          ? index === 0
-            ? "Zagueiro"
-            : "Lateral"
+          ? row.count >= 3 && (index === 0 || index === row.count - 1)
+            ? "Lateral"
+            : "Zagueiro"
           : row.id === "mid"
-            ? index === 0
+            ? row.count >= 3 && index === Math.floor((row.count - 1) / 2)
               ? "Volante"
               : "Meia"
             : row.label;
@@ -81,11 +85,8 @@ export function buildFormation({
   return slots;
 }
 
-export const generateFormation = buildFormation;
-export const createFormation = buildFormation;
-
 export const MODALITY_FORMATIONS: Record<
-  GameModality,
+  Exclude<GameModality, "custom">,
   { label: string; format: string; teamSize: number; slots: FormationSlot[] }
 > = {
   futsal: {
@@ -136,10 +137,15 @@ export const MODALITY_FORMATIONS: Record<
 
 export function createInitialLineup(
   players: Player[],
-  modality: GameModality,
+  formation: GameModality | FormationCounts,
 ): Array<Player | null> {
   const remaining = [...players];
-  const slots = MODALITY_FORMATIONS[modality].slots;
+  const slots =
+    typeof formation === "string"
+      ? formation === "custom"
+        ? []
+        : MODALITY_FORMATIONS[formation].slots
+      : buildFormation(formation);
   return slots.map((slot, slotIndex) => {
     let preferredIndex = remaining.findIndex((player) => slot.positions.includes(player.position));
     if (preferredIndex < 0 && remaining.length > 0) {

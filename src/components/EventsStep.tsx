@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlayerPhoto } from "@/components/PlayerPhoto";
 import type { Player } from "@/lib/players";
+import type { GameStyle } from "@/lib/game-style-queries";
 import {
   type AttendanceStatus,
   type EventAttendance,
@@ -42,6 +43,7 @@ type Props = {
   onSetAttendance: (eventId: string, playerId: string, status: AttendanceStatus) => Promise<void>;
   onRefreshEvents: () => void;
   onRefreshAttendance: () => void;
+  gameStyles: GameStyle[];
 };
 
 const MODALITIES: Array<{ value: GameModality; label: string }> = [
@@ -84,6 +86,7 @@ export function EventsStep({
   onSetAttendance,
   onRefreshEvents,
   onRefreshAttendance,
+  gameStyles,
 }: Props) {
   const [title, setTitle] = useState("");
   const [startsAt, setStartsAt] = useState(() =>
@@ -93,6 +96,7 @@ export function EventsStep({
     localDateTimeValue(new Date(Date.now() + 26 * 60 * 60 * 1000)),
   );
   const [modality, setModality] = useState<GameModality>("futsal");
+  const [gameStyleId, setGameStyleId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const selectedEvent = events.find((event) => event.id === selectedEventId) ?? null;
@@ -123,6 +127,7 @@ export function EventsStep({
         starts_at: start.toISOString(),
         ends_at: end.toISOString(),
         modality,
+        game_style_id: modality === "custom" ? gameStyleId : null,
       });
       setTitle("");
       toast.success("Jogo criado. A galera já pode confirmar presença.");
@@ -182,8 +187,17 @@ export function EventsStep({
               <Label htmlFor="event-modality">Modalidade</Label>
               <select
                 id="event-modality"
-                value={modality}
-                onChange={(event) => setModality(event.target.value as GameModality)}
+                value={modality === "custom" ? (gameStyleId ?? "custom") : modality}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (value === "futsal" || value === "fut7" || value === "campo11") {
+                    setModality(value);
+                    setGameStyleId(null);
+                  } else {
+                    setModality("custom");
+                    setGameStyleId(value === "custom" ? null : value);
+                  }
+                }}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 {MODALITIES.map((option) => (
@@ -191,6 +205,15 @@ export function EventsStep({
                     {option.label}
                   </option>
                 ))}
+                {gameStyles.length > 0 && (
+                  <optgroup label="Estilos da seção">
+                    {gameStyles.map((style) => (
+                      <option key={style.id} value={style.id}>
+                        {style.name} ({style.players_per_team}x{style.players_per_team})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
             <div className="space-y-2">
@@ -276,7 +299,10 @@ export function EventsStep({
                         timeStyle: "short",
                       }).format(new Date(event.starts_at))}
                       {" · "}
-                      {MODALITIES.find((item) => item.value === event.modality)?.label}
+                      {event.modality === "custom"
+                        ? (gameStyles.find((style) => style.id === event.game_style_id)?.name ??
+                          "Estilo personalizado")
+                        : MODALITIES.find((item) => item.value === event.modality)?.label}
                     </span>
                   </button>
                 );

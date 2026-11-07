@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
 import { getMySection } from "@/lib/sections";
+import { useGameStyles } from "@/lib/game-style-queries";
 import {
   getConfirmedAttendance,
   type AttendanceStatus,
@@ -117,6 +118,7 @@ function Index() {
   });
 
   const section = sectionQuery.data ?? null;
+  const gameStylesQuery = useGameStyles(section?.section_id);
   const playersQuery = useQuery({
     queryKey: ["players", section?.section_id],
     queryFn: () => listPlayers(section!.section_id),
@@ -432,6 +434,7 @@ function Index() {
             }}
             onRefreshEvents={() => void eventsQuery.refetch()}
             onRefreshAttendance={() => void attendanceQuery.refetch()}
+            gameStyles={gameStylesQuery.data ?? []}
           />
         ) : (
           <section className="animate-rise space-y-6">

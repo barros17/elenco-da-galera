@@ -20,7 +20,13 @@ export type Database = {
           location_address: string | null;
           location_link: string | null;
           location_name: string;
-          modality: "futsal" | "fut7" | "campo11";
+          modality: "futsal" | "fut7" | "campo11" | "custom";
+          players_per_team: number;
+          has_goalkeeper: boolean;
+          defenders: number;
+          midfielders: number;
+          attackers: number;
+          game_style_id: string | null;
           section_id: string;
           starts_at: string;
           status: "scheduled" | "canceled";
@@ -39,7 +45,13 @@ export type Database = {
           location_address?: string | null;
           location_link?: string | null;
           location_name?: string;
-          modality: "futsal" | "fut7" | "campo11";
+          modality: "futsal" | "fut7" | "campo11" | "custom";
+          players_per_team?: number;
+          has_goalkeeper?: boolean;
+          defenders?: number;
+          midfielders?: number;
+          attackers?: number;
+          game_style_id?: string | null;
           section_id: string;
           starts_at: string;
           status?: "scheduled" | "canceled";
@@ -58,7 +70,13 @@ export type Database = {
           location_address?: string | null;
           location_link?: string | null;
           location_name?: string;
-          modality?: "futsal" | "fut7" | "campo11";
+          modality?: "futsal" | "fut7" | "campo11" | "custom";
+          players_per_team?: number;
+          has_goalkeeper?: boolean;
+          defenders?: number;
+          midfielders?: number;
+          attackers?: number;
+          game_style_id?: string | null;
           section_id?: string;
           starts_at?: string;
           status?: "scheduled" | "canceled";
@@ -203,6 +221,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      game_styles: {
+        Row: {
+          id: string;
+          section_id: string;
+          name: string;
+          players_per_team: number;
+          has_goalkeeper: boolean;
+          defenders: number;
+          midfielders: number;
+          attackers: number;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          section_id: string;
+          name: string;
+          players_per_team: number;
+          has_goalkeeper?: boolean;
+          defenders?: number;
+          midfielders?: number;
+          attackers?: number;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["game_styles"]["Insert"]>;
+        Relationships: [];
+      };
       section_members: {
         Row: {
           joined_at: string;
@@ -233,9 +281,36 @@ export type Database = {
           p_section_id: string;
           p_starts_at: string;
           p_title: string;
+          p_game_style_id?: string | null;
         };
         Returns: string;
       };
+      create_game_style: {
+        Args: {
+          p_section_id: string;
+          p_name: string;
+          p_players_per_team: number;
+          p_has_goalkeeper: boolean;
+          p_defenders: number;
+          p_midfielders: number;
+          p_attackers: number;
+        };
+        Returns: string;
+      };
+      update_game_style: {
+        Args: {
+          p_id: string;
+          p_section_id: string;
+          p_name: string;
+          p_players_per_team: number;
+          p_has_goalkeeper: boolean;
+          p_defenders: number;
+          p_midfielders: number;
+          p_attackers: number;
+        };
+        Returns: undefined;
+      };
+      delete_game_style: { Args: { p_id: string; p_section_id: string }; Returns: undefined };
       create_section: {
         Args: { p_name: string };
         Returns: string;
