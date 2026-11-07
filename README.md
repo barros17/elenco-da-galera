@@ -9,19 +9,19 @@ Aplicativo para gerir seções, jogadores e sorteios equilibrados com autentica�
 - Administração da lista de presença e sorteio apenas entre jogadores confirmados
 - Dois times equilibrados em campos com escalações editáveis e reservas
 - Supabase como autenticação, banco e RLS
-- Fotos processadas no navegador e armazenadas em `photo_url`
+- Fotos redimensionadas no navegador e armazenadas em bucket privado; `photo_url` guarda o caminho do objeto
 
 ## Stack
 
 - TanStack Start + React 19 + Vite
 - Tailwind 4 + shadcn/ui
 - Supabase (Auth, Postgres, RLS)
-- Bun lockfile presente no repo, mas o projeto também aceita npm
+- Bun 1.2.18 é o gerenciador recomendado; o projeto também mantém lockfile npm
 
 ## Requisitos
 
-- Node.js 20+
-- Bun 1.2+ (preferencial) ou npm
+- Node.js 22.12+
+- Bun 1.2.18 (preferencial) ou npm
 - Projeto Supabase com as migrations em `supabase/migrations`
 
 ## Variáveis de ambiente
@@ -40,9 +40,11 @@ VITE_SUPABASE_PUBLISHABLE_KEY=...
 SUPABASE_URL=https://...
 SUPABASE_PUBLISHABLE_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
-VAPID_PUBLIC_KEY=...
-VAPID_PRIVATE_KEY=...
 ```
+
+`SUPABASE_SERVICE_ROLE_KEY` é opcional para o app e necessária para o script de
+migração de fotos. É uma chave somente de servidor: nunca use o prefixo `VITE_`
+nela nem a inclua no código do navegador.
 
 ## URLs de autenticação
 
@@ -58,15 +60,26 @@ as configurações de Auth no Dashboard do Supabase.
 Com Bun:
 
 ```bash
-bun install
+bun install --frozen-lockfile
 bun run dev
 ```
 
 Com npm:
 
 ```bash
-npm install
+npm ci
 npm run dev
+```
+
+## Migrar fotos legadas
+
+Após aplicar as migrations do Supabase, defina `SUPABASE_URL` e
+`SUPABASE_SERVICE_ROLE_KEY`. O script migra fotos em data URL da tabela
+`section_players`; primeiro execute a simulação e depois a migração:
+
+```bash
+bun run scripts/migrate-photos-to-storage.ts --dry-run
+bun run scripts/migrate-photos-to-storage.ts
 ```
 
 ## Scripts
@@ -75,6 +88,7 @@ npm run dev
 bun run lint
 bun run typecheck
 bun run test
+bun run build
 ```
 
 ## Banco e segurança
