@@ -44,6 +44,15 @@ VAPID_PUBLIC_KEY=...
 VAPID_PRIVATE_KEY=...
 ```
 
+## URLs de autenticação
+
+O Google OAuth retorna ao endereço atual do app (`window.location.origin`). No
+Supabase, mantenha `https://elenco-da-galera.vercel.app` como **Site URL** e
+permita `http://localhost:5173/**` em **Redirect URLs** para o desenvolvimento
+local. Os endereços autorizados também estão listados em
+`supabase/config.toml`; aplicar alterações no projeto hospedado exige atualizar
+as configurações de Auth no Dashboard do Supabase.
+
 ## Rodar localmente
 
 Com Bun:
