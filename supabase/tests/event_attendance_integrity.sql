@@ -54,38 +54,38 @@ begin
   perform set_config('request.jwt.claim.sub', admin_id::text, true);
 
   insert into public.events (
-    section_id, title, starts_at, ends_at, modality, created_by, confirmation_deadline
+    section_id, title, starts_at, ends_at, modality, players_per_team, has_goalkeeper, defenders, midfielders, attackers, created_by, confirmation_deadline
   )
   values (
     own_section_id, 'Jogo ativo', now() + interval '1 day',
-    now() + interval '1 day 2 hours', 'futsal', admin_id, now() + interval '12 hours'
+    now() + interval '1 day 2 hours', 'futsal', 5, true, 1, 2, 1, admin_id, now() + interval '12 hours'
   )
   returning id into active_event_id;
 
   insert into public.events (
-    section_id, title, starts_at, ends_at, modality, status, created_by
+    section_id, title, starts_at, ends_at, modality, players_per_team, has_goalkeeper, defenders, midfielders, attackers, status, created_by
   )
   values (
     own_section_id, 'Jogo cancelado', now() + interval '2 days',
-    now() + interval '2 days 2 hours', 'futsal', 'canceled', admin_id
+    now() + interval '2 days 2 hours', 'futsal', 5, true, 1, 2, 1, 'canceled', admin_id
   )
   returning id into canceled_event_id;
 
   insert into public.events (
-    section_id, title, starts_at, ends_at, modality, created_by, confirmation_deadline
+    section_id, title, starts_at, ends_at, modality, players_per_team, has_goalkeeper, defenders, midfielders, attackers, created_by, confirmation_deadline
   )
   values (
     own_section_id, 'Jogo com prazo vencido', now() + interval '3 days',
-    now() + interval '3 days 2 hours', 'futsal', admin_id, now() - interval '1 minute'
+    now() + interval '3 days 2 hours', 'futsal', 5, true, 1, 2, 1, admin_id, now() - interval '1 minute'
   )
   returning id into expired_event_id;
 
   insert into public.events (
-    section_id, title, starts_at, ends_at, modality, created_by
+    section_id, title, starts_at, ends_at, modality, players_per_team, has_goalkeeper, defenders, midfielders, attackers, created_by
   )
   values (
     other_section_id, 'Jogo externo', now() + interval '1 day',
-    now() + interval '1 day 2 hours', 'futsal', other_admin_id
+    now() + interval '1 day 2 hours', 'futsal', 5, true, 1, 2, 1, other_admin_id
   )
   returning id into other_event_id;
 

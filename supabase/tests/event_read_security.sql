@@ -43,11 +43,11 @@ begin
   returning id into event_player_id;
 
   insert into public.events (
-    section_id, title, starts_at, ends_at, modality, created_by
+    section_id, title, starts_at, ends_at, modality, players_per_team, has_goalkeeper, defenders, midfielders, attackers, created_by
   )
   values (
     event_section_id, 'Jogo privado de teste', now() + interval '1 day',
-    now() + interval '1 day 2 hours', 'futsal', admin_id
+    now() + interval '1 day 2 hours', 'futsal', 5, true, 1, 2, 1, admin_id
   )
   returning id into own_event_id;
 
@@ -56,11 +56,11 @@ begin
   values (own_event_id, event_player_id);
 
   insert into public.events (
-    section_id, title, starts_at, ends_at, modality, created_by
+    section_id, title, starts_at, ends_at, modality, players_per_team, has_goalkeeper, defenders, midfielders, attackers, created_by
   )
   values (
     other_section_id, 'Jogo da outra seção', now() + interval '1 day',
-    now() + interval '1 day 2 hours', 'futsal', other_member_id
+    now() + interval '1 day 2 hours', 'futsal', 5, true, 1, 2, 1, other_member_id
   )
   returning id into foreign_event_id;
 
@@ -75,8 +75,7 @@ do $$
 declare
   unsafe_routine record;
 begin
-  if to_regclass('public.event_draw_eligible') is not null
-    or to_regprocedure('public.event_waitlist_order(uuid)') is not null
+  if to_regprocedure('public.event_waitlist_order(uuid)') is not null
     or to_regprocedure('public.event_attendance_is_confirmed(text)') is not null
   then
     raise exception 'Uma view ou função de presença não utilizada continua exposta.';
@@ -84,6 +83,7 @@ begin
 
   if has_table_privilege('anon', 'public.events', 'SELECT')
     or has_table_privilege('anon', 'public.event_attendance', 'SELECT')
+    or has_table_privilege('anon', 'public.event_draw_eligible', 'SELECT')
   then
     raise exception 'O papel anon ainda tem permissão de leitura de eventos ou presenças.';
   end if;

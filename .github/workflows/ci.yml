@@ -31,3 +31,43 @@ jobs:
 
       - name: Build
         run: bun run build
+
+  sql-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: supabase/postgres:15.1.1.78
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for migration in supabase/migrations/*.sql; do
+            echo "Applying $migration"
+            psql --host localhost --port 5432 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file "$migration"
+          done
+
+      - name: Run SQL tests
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for test_file in supabase/tests/*.sql; do
+            echo "Running $test_file"
+            psql --host localhost --port 5432 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file "$test_file"
+          done
