@@ -10,10 +10,29 @@ begin
     (admin_id, 'authenticated', 'authenticated', admin_id::text || '@styles.invalid', now(), now(), '{}', '{}'),
     (member_id, 'authenticated', 'authenticated', member_id::text || '@styles.invalid', now(), now(), '{}', '{}'),
     (other_admin_id, 'authenticated', 'authenticated', other_admin_id::text || '@styles.invalid', now(), now(), '{}', '{}');
-  insert into public.sections (name, created_by) values ('Seção de estilos', admin_id) returning id into section_id;
-  insert into public.section_members (section_id, user_id) values (section_id, admin_id), (section_id, member_id);
-  insert into public.sections (name, created_by) values ('Outra seção', other_admin_id) returning id into other_section_id;
-  insert into public.section_members (section_id, user_id) values (other_section_id, other_admin_id);
+  perform set_config('request.jwt.claim.role', 'authenticated', false);
+  perform set_config('request.jwt.claim.sub', admin_id::text, false);
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object('role', 'authenticated', 'sub', admin_id)::text,
+    false
+  );
+  execute 'set local role authenticated';
+  section_id := public.create_section('Seção de estilos');
+  execute 'reset role';
+
+  perform set_config('request.jwt.claim.sub', other_admin_id::text, false);
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object('role', 'authenticated', 'sub', other_admin_id)::text,
+    false
+  );
+  execute 'set local role authenticated';
+  other_section_id := public.create_section('Outra seção');
+  execute 'reset role';
+
+  insert into public.section_members (section_id, user_id)
+  values (section_id, member_id);
   insert into public.section_players (section_id, user_id, name, position, skills, created_by)
   values (section_id, admin_id, 'Jogador de teste', 'ATA', '{}', admin_id) returning id into player_id;
   perform set_config('test_styles.admin_id', admin_id::text, true);
