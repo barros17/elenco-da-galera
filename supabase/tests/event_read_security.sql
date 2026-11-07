@@ -12,14 +12,14 @@ declare
   foreign_event_id uuid;
 begin
   insert into auth.users (
-    id, aud, role, email, email_confirmed_at, created_at, updated_at,
+    id, aud, role, email, created_at, updated_at,
     raw_app_meta_data, raw_user_meta_data
   )
   values
     (admin_id, 'authenticated', 'authenticated', admin_id::text || '@rls-test.invalid',
-      now(), now(), now(), '{"provider":"email","providers":["email"]}', '{}'),
+      now(), now(), '{"provider":"email","providers":["email"]}', '{}'),
     (other_member_id, 'authenticated', 'authenticated', other_member_id::text || '@rls-test.invalid',
-      now(), now(), now(), '{"provider":"email","providers":["email"]}', '{}');
+      now(), now(), '{"provider":"email","providers":["email"]}', '{}');
 
   insert into public.sections (name, created_by)
   values ('Seção privada de teste', admin_id)

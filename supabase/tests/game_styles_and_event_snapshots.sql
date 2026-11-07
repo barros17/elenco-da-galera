@@ -5,11 +5,11 @@ declare
   admin_id uuid := gen_random_uuid(); member_id uuid := gen_random_uuid(); other_admin_id uuid := gen_random_uuid();
   section_id uuid; other_section_id uuid; player_id uuid;
 begin
-  insert into auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
+  insert into auth.users (id, aud, role, email, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
   values
-    (admin_id, 'authenticated', 'authenticated', admin_id::text || '@styles.invalid', now(), now(), now(), '{}', '{}'),
-    (member_id, 'authenticated', 'authenticated', member_id::text || '@styles.invalid', now(), now(), now(), '{}', '{}'),
-    (other_admin_id, 'authenticated', 'authenticated', other_admin_id::text || '@styles.invalid', now(), now(), now(), '{}', '{}');
+    (admin_id, 'authenticated', 'authenticated', admin_id::text || '@styles.invalid', now(), now(), '{}', '{}'),
+    (member_id, 'authenticated', 'authenticated', member_id::text || '@styles.invalid', now(), now(), '{}', '{}'),
+    (other_admin_id, 'authenticated', 'authenticated', other_admin_id::text || '@styles.invalid', now(), now(), '{}', '{}');
   insert into public.sections (name, created_by) values ('Seção de estilos', admin_id) returning id into section_id;
   insert into public.section_members (section_id, user_id) values (section_id, admin_id), (section_id, member_id);
   insert into public.sections (name, created_by) values ('Outra seção', other_admin_id) returning id into other_section_id;
