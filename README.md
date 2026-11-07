@@ -5,7 +5,7 @@ Aplicativo para gerir seções, jogadores e sorteios equilibrados com autentica�
 - UI 100% em português do Brasil, mobile-first, no visual preto/amarelo/cinza/branco
 - Cadastro de jogadores por seção com cartas por faixa de overall
 - Seções com código de convite, admin e membros
-- Jogos com modalidade futsal, fut7 ou futebol de campo e confirmação de presença por jogador
+- Jogos com modalidades fixas e estilos personalizados por seção, com confirmação de presença
 - Administração da lista de presença e sorteio apenas entre jogadores confirmados
 - Dois times equilibrados em campos com escalações editáveis e reservas
 - Supabase como autenticação, banco e RLS
@@ -16,7 +16,7 @@ Aplicativo para gerir seções, jogadores e sorteios equilibrados com autentica�
 - TanStack Start + React 19 + Vite
 - Tailwind 4 + shadcn/ui
 - Supabase (Auth, Postgres, RLS)
-- Bun 1.2.18 é o gerenciador recomendado; o projeto também mantém lockfile npm
+- Bun 1.2.18 é o gerenciador oficial; o repositório usa somente `bun.lock`
 
 ## Requisitos
 
@@ -49,10 +49,10 @@ nela nem a inclua no código do navegador.
 ## URLs de autenticação
 
 O Google OAuth retorna ao endereço atual do app (`window.location.origin`). No
-Supabase, mantenha `https://elenco-da-galera.vercel.app` como **Site URL** e
-permita `http://localhost:5173/**` em **Redirect URLs** para o desenvolvimento
-local. Os endereços autorizados também estão listados em
-`supabase/config.toml`; aplicar alterações no projeto hospedado exige atualizar
+Supabase, use o domínio real da aplicação como **Site URL** e permita
+`http://localhost:5173/**` em **Redirect URLs** para o desenvolvimento local.
+Os placeholders estão listados em
+`supabase/config.toml`; aplicar o domínio hospedado exige atualizar
 as configurações de Auth no Dashboard do Supabase.
 
 ## Rodar localmente
@@ -62,13 +62,6 @@ Com Bun:
 ```bash
 bun install --frozen-lockfile
 bun run dev
-```
-
-Com npm:
-
-```bash
-npm ci
-npm run dev
 ```
 
 ## Migrar fotos legadas

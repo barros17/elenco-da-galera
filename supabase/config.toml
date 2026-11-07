@@ -1,13 +1,10 @@
 project_id = "qcttfdvfqqskndlaofoy"
 
 [auth]
-site_url = "https://elenco-da-galera.vercel.app"
+# site_url = "https://app.SEU-DOMINIO.com.br"
+site_url = "http://localhost:5173"
 additional_redirect_urls = [
   "http://localhost:5173/**",
-  "https://elenco-da-galera.vercel.app",
-  "https://elenco-da-galera.vercel.app/**",
-  "https://elenco-da-galera-diego-8d62.vercel.app/",
-  "https://elenco-da-galera-diego-8d62.vercel.app/**",
-  "https://elenco-*-da-galera-diego-8d62.vercel.app",
-  "https://elenco-*-da-galera-diego-8d62.vercel.app/**",
+  # "https://app.SEU-DOMINIO.com.br",
+  # "https://app.SEU-DOMINIO.com.br/**",
 ]
