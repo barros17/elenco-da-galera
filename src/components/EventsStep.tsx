@@ -36,6 +36,8 @@ import {
   googleMapsEmbedUrl,
   googleMapsSearchUrl,
   hasOnlyShortMapLink,
+  INVALID_GOOGLE_MAPS_LINK_MESSAGE,
+  isGenericGoogleMapsLink,
   isAllowedGoogleMapsLink,
 } from "@/lib/event-location";
 import {
@@ -193,7 +195,7 @@ export function EventsStep({
       return;
     }
     if (locationLink.trim() && !isAllowedGoogleMapsLink(locationLink)) {
-      toast.error("Informe um link HTTPS válido do Google Maps.");
+      toast.error(INVALID_GOOGLE_MAPS_LINK_MESSAGE);
       return;
     }
     if ((locationLat === null) !== (locationLng === null)) {
@@ -340,6 +342,12 @@ export function EventsStep({
                 required
                 placeholder="Pelada de sábado"
               />
+              {isGenericGoogleMapsLink(locationLink) && (
+                <p className="text-xs text-amber-700">
+                  Esse link não aponta para um local específico. Adicione o endereço ou use sua
+                  localização para ver o mapa no jogo.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="event-modality">Modalidade</Label>

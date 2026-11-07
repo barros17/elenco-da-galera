@@ -4,25 +4,31 @@ import {
   googleMapsEmbedUrl,
   googleMapsSearchUrl,
   hasOnlyShortMapLink,
+  isGenericGoogleMapsLink,
   isAllowedGoogleMapsLink,
 } from "./event-location";
 
 describe("event-location", () => {
   it.each([
-    "https://google.com/maps",
-    "https://www.google.com/maps/search/?api=1&query=quadra",
-    "https://maps.google.com/?q=quadra",
+    "https://www.google.com.br/maps/?hl=pt-BR",
+    "https://www.google.com.br/maps/place/Quadra",
+    "https://google.com/maps?q=-23.55,-46.63",
+    "https://maps.google.com.br/?q=quadra",
     "https://maps.app.goo.gl/abc123",
     "https://goo.gl/maps/abc123",
+    "https://www.google.pt/maps/place/Lisboa",
   ])("aceita link permitido: %s", (link) => expect(isAllowedGoogleMapsLink(link)).toBe(true));
 
   it.each([
     "javascript:alert(1)",
     "http://google.com/maps",
     "https://google.com.evil.com/maps",
-    "https://evil.com/maps",
-    "https://user@google.com/maps",
-    "https://goo.gl/other/abc",
+    "https://evilgoogle.com.br/maps",
+    "https://www.google.com.br@evil.com/maps",
+    "https://www.google.com.br:8080/maps",
+    "https://www.google.com.br/search?q=x",
+    "https://goo.gl/abc",
+    "data:text/html,x",
   ])("rejeita link perigoso: %s", (link) => expect(isAllowedGoogleMapsLink(link)).toBe(false));
 
   const location = { location_address: "Rua A, 10 - São Paulo" };
@@ -49,5 +55,11 @@ describe("event-location", () => {
     expect(hasOnlyShortMapLink(shortLink)).toBe(true);
     expect(googleMapsEmbedUrl(shortLink)).toBeNull();
     expect(googleMapsDirectionsUrl(shortLink)).toBeNull();
+  });
+
+  it("identifica link genérico sem rejeitá-lo", () => {
+    expect(isGenericGoogleMapsLink("https://www.google.com.br/maps/?hl=pt-BR")).toBe(true);
+    expect(isGenericGoogleMapsLink("https://www.google.com.br/maps/place/Quadra")).toBe(false);
+    expect(isGenericGoogleMapsLink("https://google.com/maps?q=quadra")).toBe(false);
   });
 });

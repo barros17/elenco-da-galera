@@ -1,10 +1,7 @@
-const ALLOWED_HOSTS = new Set([
-  "google.com",
-  "www.google.com",
-  "maps.google.com",
-  "maps.app.goo.gl",
-  "goo.gl",
-]);
+export const INVALID_GOOGLE_MAPS_LINK_MESSAGE =
+  "Link inválido. Cole um link do Google Maps (google.com/maps, google.com.br/maps ou maps.app.goo.gl). No app do Maps, use Compartilhar e copie o link.";
+
+const GOOGLE_HOST_PATTERN = /^(www\.|maps\.)?google\.(?:com|com\.[a-z]{2}|co\.[a-z]{2}|[a-z]{2})$/;
 
 export type EventLocation = {
   location_name?: string | null;
@@ -25,10 +22,40 @@ export function isAllowedGoogleMapsLink(value: string | null | undefined): boole
   try {
     const url = new URL(link);
     const host = url.hostname.toLowerCase();
-    if (url.protocol !== "https:" || !ALLOWED_HOSTS.has(host) || url.username || url.password) {
+    if (url.protocol !== "https:" || url.port || url.username || url.password) {
       return false;
     }
-    return host !== "goo.gl" || url.pathname === "/maps" || url.pathname.startsWith("/maps/");
+    if (host === "maps.app.goo.gl") return true;
+    if (host === "goo.gl") return url.pathname === "/maps" || url.pathname.startsWith("/maps/");
+    if (!GOOGLE_HOST_PATTERN.test(host)) return false;
+    return (
+      host.startsWith("maps.google.") ||
+      url.pathname === "/maps" ||
+      url.pathname.startsWith("/maps/")
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function isGenericGoogleMapsLink(value: string | null | undefined): boolean {
+  const link = nonEmpty(value);
+  if (!link || !isAllowedGoogleMapsLink(link)) return false;
+  try {
+    const url = new URL(link);
+    if (
+      url.hostname.toLowerCase() === "maps.app.goo.gl" ||
+      url.hostname.toLowerCase() === "goo.gl"
+    ) {
+      return false;
+    }
+    if (url.pathname !== "/maps" && url.pathname !== "/maps/") return false;
+    return (
+      !url.searchParams.has("q") &&
+      !url.searchParams.has("dir") &&
+      !url.pathname.includes("/place") &&
+      !/@-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?/.test(url.pathname)
+    );
   } catch {
     return false;
   }
