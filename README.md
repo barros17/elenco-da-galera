@@ -46,6 +46,7 @@ Exemplo de chaves esperadas:
 ```env
 VITE_SUPABASE_URL=https://...
 VITE_SUPABASE_PUBLISHABLE_KEY=...
+VITE_GOOGLE_MAPS_EMBED_KEY=
 SUPABASE_URL=https://...
 SUPABASE_PUBLISHABLE_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
@@ -54,6 +55,21 @@ SUPABASE_SERVICE_ROLE_KEY=...
 `SUPABASE_SERVICE_ROLE_KEY` é opcional para o app e necessária para o script de
 migração de fotos. É uma chave somente de servidor: nunca use o prefixo `VITE_`
 nela nem a inclua no código do navegador.
+
+### Google Maps
+
+Para habilitar o mapa oficial incorporado:
+
+1. No [Google Cloud Console](https://console.cloud.google.com/), crie ou selecione um projeto.
+2. Ative a **Maps Embed API** em APIs e serviços.
+3. Crie uma chave de API e restrinja-a por **referrers HTTP** ao domínio do app e a `localhost` durante o desenvolvimento.
+4. Em restrições de API, permita somente a **Maps Embed API**.
+5. Preencha `VITE_GOOGLE_MAPS_EMBED_KEY` no ambiente de build.
+
+A chave de Embed no cliente é esperada por design; a restrição por referrer e por
+API é o que limita seu uso. Sem a chave, o app usa o formato de fallback
+`maps?q=...&output=embed`, que não é documentado oficialmente pelo Google e pode
+mudar. Se um dia for configurada CSP, permita `frame-src https://www.google.com`.
 
 ## URLs de autenticação
 

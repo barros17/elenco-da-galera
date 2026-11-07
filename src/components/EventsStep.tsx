@@ -3,6 +3,10 @@ import {
   CalendarDays,
   Check,
   CircleHelp,
+  ExternalLink,
+  LocateFixed,
+  MapPin,
+  Navigation,
   Plus,
   RefreshCw,
   UserRound,
@@ -27,6 +31,13 @@ import {
 import type { Player } from "@/lib/players";
 import type { GameStyle } from "@/lib/game-style-queries";
 import { eventActions } from "@/lib/event-management";
+import {
+  googleMapsDirectionsUrl,
+  googleMapsEmbedUrl,
+  googleMapsSearchUrl,
+  hasOnlyShortMapLink,
+  isAllowedGoogleMapsLink,
+} from "@/lib/event-location";
 import {
   type AttendanceStatus,
   type EventAttendance,
@@ -116,6 +127,11 @@ export function EventsStep({
   );
   const [modality, setModality] = useState<GameModality>("futsal");
   const [gameStyleId, setGameStyleId] = useState<string | null>(null);
+  const [locationName, setLocationName] = useState("");
+  const [locationAddress, setLocationAddress] = useState("");
+  const [locationLink, setLocationLink] = useState("");
+  const [locationLat, setLocationLat] = useState<number | null>(null);
+  const [locationLng, setLocationLng] = useState<number | null>(null);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [editingOriginalFormat, setEditingOriginalFormat] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<"cancel" | "delete" | null>(null);
@@ -139,6 +155,11 @@ export function EventsStep({
     setEndsAt(localDateTimeValue(new Date(event.ends_at)));
     setModality(event.modality);
     setGameStyleId(event.game_style_id);
+    setLocationName(event.location_name ?? "");
+    setLocationAddress(event.location_address ?? "");
+    setLocationLink(event.location_link ?? "");
+    setLocationLat(event.location_lat);
+    setLocationLng(event.location_lng);
     setEditingOriginalFormat(`${event.modality}:${event.game_style_id ?? ""}`);
   }
 
@@ -147,6 +168,11 @@ export function EventsStep({
     setTitle("");
     setModality("futsal");
     setGameStyleId(null);
+    setLocationName("");
+    setLocationAddress("");
+    setLocationLink("");
+    setLocationLat(null);
+    setLocationLng(null);
     setEditingOriginalFormat(null);
   }
 
@@ -166,6 +192,14 @@ export function EventsStep({
       toast.error("Selecione um estilo personalizado.");
       return;
     }
+    if (locationLink.trim() && !isAllowedGoogleMapsLink(locationLink)) {
+      toast.error("Informe um link HTTPS válido do Google Maps.");
+      return;
+    }
+    if ((locationLat === null) !== (locationLng === null)) {
+      toast.error("Latitude e longitude precisam ser informadas juntas.");
+      return;
+    }
 
     setBusy(true);
     try {
@@ -176,6 +210,11 @@ export function EventsStep({
         ends_at: end.toISOString(),
         modality,
         game_style_id: modality === "custom" ? gameStyleId : null,
+        location_name: locationName.trim() || null,
+        location_address: locationAddress.trim() || null,
+        location_link: locationLink.trim() || null,
+        location_lat: locationLat,
+        location_lng: locationLng,
       } satisfies NewFootballEvent;
       if (editingEventId) {
         await onUpdateEvent({ ...input, id: editingEventId });
@@ -191,6 +230,37 @@ export function EventsStep({
     } finally {
       setBusy(false);
     }
+  }
+
+  function useMyLocation() {
+    if (!window.isSecureContext && window.location.hostname !== "localhost") {
+      toast.error("A localização exige um contexto seguro (HTTPS).");
+      return;
+    }
+    if (!navigator.geolocation) {
+      toast.error("A geolocalização não está disponível neste dispositivo.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocationLat(Number(position.coords.latitude.toFixed(7)));
+        setLocationLng(Number(position.coords.longitude.toFixed(7)));
+        toast.success("Localização preenchida. Confirme as coordenadas antes de salvar.");
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) toast.error("Permissão de localização negada.");
+        else if (error.code === error.TIMEOUT)
+          toast.error("Tempo esgotado ao obter sua localização.");
+        else toast.error("Não foi possível obter sua localização.");
+      },
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+    );
+  }
+
+  function clearLocation() {
+    setLocationLat(null);
+    setLocationLng(null);
+    toast.success("Coordenadas removidas.");
   }
 
   async function runPendingAction() {
@@ -338,6 +408,54 @@ export function EventsStep({
                   Este jogo já tem presenças. Ao trocar o formato, será necessário gerar o sorteio
                   novamente.
                 </p>
+              )}
+            </div>
+          </div>
+          <div className="grid gap-4 rounded-xl border border-border/70 bg-muted/20 p-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="event-location-name">Nome do local</Label>
+              <Input
+                id="event-location-name"
+                value={locationName}
+                maxLength={80}
+                onChange={(event) => setLocationName(event.target.value)}
+                placeholder="Quadra do bairro"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event-location-address">Endereço</Label>
+              <Input
+                id="event-location-address"
+                value={locationAddress}
+                maxLength={200}
+                onChange={(event) => setLocationAddress(event.target.value)}
+                placeholder="Rua, número, cidade"
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="event-location-link">Link do Google Maps</Label>
+              <Input
+                id="event-location-link"
+                type="url"
+                value={locationLink}
+                maxLength={500}
+                onChange={(event) => setLocationLink(event.target.value)}
+                placeholder="https://maps.google.com/..."
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
+              <Button type="button" variant="outline" onClick={useMyLocation} disabled={busy}>
+                <LocateFixed className="mr-2 h-4 w-4" /> Usar minha localização
+              </Button>
+              {(locationLat !== null || locationLng !== null) && (
+                <>
+                  <span className="text-sm text-muted-foreground">
+                    Coordenadas: {locationLat ?? "—"}, {locationLng ?? "—"}
+                  </span>
+                  <Button type="button" variant="ghost" onClick={clearLocation}>
+                    Limpar localização
+                  </Button>
+                </>
               )}
             </div>
           </div>
@@ -490,6 +608,67 @@ export function EventsStep({
                   Este jogo está cancelado. A confirmação de presença e o sorteio estão
                   indisponíveis.
                 </p>
+              )}
+              {(selectedEvent.location_name ||
+                selectedEvent.location_address ||
+                selectedEvent.location_link ||
+                selectedEvent.location_lat !== null) && (
+                <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    <h4 className="font-semibold">Local</h4>
+                  </div>
+                  {selectedEvent.location_name && (
+                    <p className="font-medium">{selectedEvent.location_name}</p>
+                  )}
+                  {selectedEvent.location_address && (
+                    <p className="text-sm text-muted-foreground">
+                      {selectedEvent.location_address}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {googleMapsSearchUrl(selectedEvent) && (
+                      <a
+                        className="inline-flex items-center rounded-md border border-border px-3 py-2 text-sm font-semibold hover:border-primary"
+                        href={googleMapsSearchUrl(selectedEvent)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" /> Abrir no Google Maps
+                      </a>
+                    )}
+                    {googleMapsDirectionsUrl(selectedEvent) && (
+                      <a
+                        className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+                        href={googleMapsDirectionsUrl(selectedEvent)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Navigation className="mr-2 h-4 w-4" /> Como chegar
+                      </a>
+                    )}
+                  </div>
+                  {hasOnlyShortMapLink(selectedEvent) ? (
+                    <p className="text-sm text-muted-foreground">
+                      Adicione o endereço ou use a localização para ver o mapa aqui.
+                    </p>
+                  ) : googleMapsEmbedUrl(
+                      selectedEvent,
+                      import.meta.env["VITE_GOOGLE_MAPS_EMBED_KEY"],
+                    ) ? (
+                    <iframe
+                      className="h-64 w-full rounded-lg border border-border"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title={`Mapa do local de ${selectedEvent.title}`}
+                      sandbox="allow-scripts allow-same-origin allow-popups"
+                      src={googleMapsEmbedUrl(
+                        selectedEvent,
+                        import.meta.env["VITE_GOOGLE_MAPS_EMBED_KEY"],
+                      )!}
+                    />
+                  ) : null}
+                </div>
               )}
               {ownPlayer && selectedEvent.status === "scheduled" && (
                 <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">

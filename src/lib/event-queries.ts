@@ -15,7 +15,7 @@ export async function listSectionEvents(
   const query = supabase
     .from("events")
     .select(
-      "id, section_id, title, starts_at, ends_at, modality, status, game_style_id, players_per_team, has_goalkeeper, defenders, midfielders, attackers",
+      "id, section_id, title, starts_at, ends_at, modality, status, game_style_id, players_per_team, has_goalkeeper, defenders, midfielders, attackers, location_name, location_address, location_link, location_lat, location_lng",
     )
     .eq("section_id", sectionId)
     .order("starts_at", { ascending: true });
@@ -36,6 +36,11 @@ export async function listSectionEvents(
       attackers: event.attackers,
     },
     status: event.status,
+    location_name: event.location_name || null,
+    location_address: event.location_address,
+    location_link: event.location_link,
+    location_lat: event.location_lat,
+    location_lng: event.location_lng,
   }));
 }
 
@@ -60,6 +65,11 @@ export async function createFootballEvent(event: NewFootballEvent): Promise<stri
     p_ends_at: event.ends_at,
     p_modality: event.modality,
     p_game_style_id: event.game_style_id ?? null,
+    p_location_name: event.location_name ?? null,
+    p_location_address: event.location_address ?? null,
+    p_location_link: event.location_link ?? null,
+    p_location_lat: event.location_lat ?? null,
+    p_location_lng: event.location_lng ?? null,
   });
 
   if (error) throw error;
@@ -74,6 +84,11 @@ export async function updateFootballEvent(event: NewFootballEvent & { id: string
     p_ends_at: event.ends_at,
     p_modality: event.modality,
     p_game_style_id: event.game_style_id ?? null,
+    p_location_name: event.location_name ?? null,
+    p_location_address: event.location_address ?? null,
+    p_location_link: event.location_link ?? null,
+    p_location_lat: event.location_lat ?? null,
+    p_location_lng: event.location_lng ?? null,
   });
   if (error) throw error;
 }

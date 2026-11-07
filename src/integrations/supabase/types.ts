@@ -21,6 +21,8 @@ export type Database = {
           location_link: string | null;
           location_name: string;
           modality: "futsal" | "fut7" | "campo11" | "custom";
+          location_lat: number | null;
+          location_lng: number | null;
           players_per_team: number;
           has_goalkeeper: boolean;
           defenders: number;
@@ -45,6 +47,8 @@ export type Database = {
           location_address?: string | null;
           location_link?: string | null;
           location_name?: string;
+          location_lat?: number | null;
+          location_lng?: number | null;
           modality: "futsal" | "fut7" | "campo11" | "custom";
           players_per_team?: number;
           has_goalkeeper?: boolean;
@@ -70,6 +74,8 @@ export type Database = {
           location_address?: string | null;
           location_link?: string | null;
           location_name?: string;
+          location_lat?: number | null;
+          location_lng?: number | null;
           modality?: "futsal" | "fut7" | "campo11" | "custom";
           players_per_team?: number;
           has_goalkeeper?: boolean;
@@ -282,6 +288,11 @@ export type Database = {
           p_starts_at: string;
           p_title: string;
           p_game_style_id?: string | null;
+          p_location_name?: string | null;
+          p_location_address?: string | null;
+          p_location_link?: string | null;
+          p_location_lat?: number | null;
+          p_location_lng?: number | null;
         };
         Returns: string;
       };
@@ -319,6 +330,11 @@ export type Database = {
           p_ends_at: string;
           p_modality: string;
           p_game_style_id?: string | null;
+          p_location_name?: string | null;
+          p_location_address?: string | null;
+          p_location_link?: string | null;
+          p_location_lat?: number | null;
+          p_location_lng?: number | null;
         };
         Returns: undefined;
       };

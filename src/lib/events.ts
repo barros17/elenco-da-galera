@@ -27,6 +27,11 @@ export type FootballEvent = {
   game_style_id: string | null;
   formation: EventFormationSnapshot;
   status: "scheduled" | "canceled";
+  location_name: string | null;
+  location_address: string | null;
+  location_link: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
 };
 
 export type EventAttendance = AttendanceRow & {
@@ -38,7 +43,14 @@ export type EventAttendance = AttendanceRow & {
 export type NewFootballEvent = Pick<
   FootballEvent,
   "section_id" | "title" | "starts_at" | "ends_at" | "modality"
-> & { game_style_id?: string | null };
+> & {
+  game_style_id?: string | null;
+  location_name?: string | null;
+  location_address?: string | null;
+  location_link?: string | null;
+  location_lat?: number | null;
+  location_lng?: number | null;
+};
 
 export function normalizeGameModality(value: string): GameModality {
   if (value === "futsal" || value === "fut7" || value === "campo11" || value === "custom")
