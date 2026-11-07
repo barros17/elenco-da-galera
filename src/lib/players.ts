@@ -57,25 +57,31 @@ export function defaultSkills(position: Position): Skills {
 }
 
 const WEIGHTS: Record<Exclude<Position, "GOL">, Record<string, number>> = {
-  ATA: { RIT: 0.2, CHU: 0.3, PAS: 0.1, DRI: 0.25, DEF: 0, FIS: 0.15 },
-  MEI: { RIT: 0.1, CHU: 0.15, PAS: 0.3, DRI: 0.25, DEF: 0.05, FIS: 0.15 },
-  VOL: { RIT: 0.1, CHU: 0.05, PAS: 0.25, DRI: 0.15, DEF: 0.3, FIS: 0.15 },
-  LAT: { RIT: 0.25, CHU: 0.05, PAS: 0.15, DRI: 0.15, DEF: 0.25, FIS: 0.15 },
-  ZAG: { RIT: 0.1, CHU: 0, PAS: 0.1, DRI: 0.05, DEF: 0.45, FIS: 0.3 },
+  ATA: { RIT: 20, CHU: 30, PAS: 10, DRI: 25, DEF: 0, FIS: 15 },
+  MEI: { RIT: 10, CHU: 15, PAS: 30, DRI: 25, DEF: 5, FIS: 15 },
+  VOL: { RIT: 10, CHU: 5, PAS: 25, DRI: 15, DEF: 30, FIS: 15 },
+  LAT: { RIT: 25, CHU: 5, PAS: 15, DRI: 15, DEF: 25, FIS: 15 },
+  ZAG: { RIT: 10, CHU: 0, PAS: 10, DRI: 5, DEF: 45, FIS: 30 },
 };
 
 /** Overall = média ponderada por posição, arredondada. Goleiro usa média simples. */
 export function calcOverall(position: Position, skills: Skills): number {
   if (position === "GOL") {
-    const vals = GK_SKILLS.map((s) => skills[s.key] ?? 1);
-    return clamp(Math.round(vals.reduce((a, b) => a + b, 0) / vals.length));
+    const vals = GK_SKILLS.map((s) => normalizedSkill(skills[s.key]));
+    return clamp(Math.floor((vals.reduce((a, b) => a + b, 0) + 3) / 6));
   }
   const w = WEIGHTS[position];
   const total = Object.entries(w).reduce(
-    (sum, [key, weight]) => sum + (skills[key] ?? 1) * weight,
+    (sum, [key, weight]) => sum + normalizedSkill(skills[key]) * weight,
     0,
   );
-  return clamp(Math.round(total));
+  return clamp(Math.floor((total + 50) / 100));
+}
+
+function normalizedSkill(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(99, Math.max(1, Math.round(value)))
+    : 1;
 }
 
 function clamp(n: number) {
