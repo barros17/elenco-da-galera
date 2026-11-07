@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   Check,
@@ -138,6 +138,8 @@ export function EventsStep({
   const [editingOriginalFormat, setEditingOriginalFormat] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<"cancel" | "delete" | null>(null);
   const [busy, setBusy] = useState(false);
+  const editFormRef = useRef<HTMLFormElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const selectedEvent = events.find((event) => event.id === selectedEventId) ?? null;
   const attendanceByPlayerId = new Map(attendance.map((row) => [row.player_id, row]));
@@ -149,6 +151,13 @@ export function EventsStep({
     editingEventId !== null &&
     editingOriginalFormat !== `${modality}:${gameStyleId ?? ""}` &&
     attendance.length > 0;
+
+  useEffect(() => {
+    if (!editingEventId) return;
+
+    editFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    titleInputRef.current?.focus();
+  }, [editingEventId]);
 
   function startEditing(event: FootballEvent) {
     setEditingEventId(event.id);
@@ -322,8 +331,9 @@ export function EventsStep({
 
       {isAdmin && (
         <form
+          ref={editFormRef}
           onSubmit={(event) => void createEvent(event)}
-          className="space-y-4 rounded-2xl border border-border bg-card p-5"
+          className="scroll-mt-24 space-y-4 rounded-2xl border border-border bg-card p-5"
         >
           <div className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-primary" />
@@ -336,6 +346,7 @@ export function EventsStep({
               <Label htmlFor="event-title">Nome</Label>
               <Input
                 id="event-title"
+                ref={titleInputRef}
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 maxLength={80}
