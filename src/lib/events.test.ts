@@ -11,10 +11,30 @@ describe("event attendance rules", () => {
 
   it("returns the confirmed pool in the same ranked order used by the draw", () => {
     const rows = [
-      { id: "x", waitlist_position: 3, status: "PENDING" as const, responded_at: "2026-01-01T06:00:00Z" },
-      { id: "a", waitlist_position: 1, status: "CONFIRMED" as const, responded_at: "2026-01-01T08:00:00Z" },
-      { id: "b", waitlist_position: 2, status: "CONFIRMED" as const, responded_at: "2026-01-01T09:00:00Z" },
-      { id: "c", waitlist_position: 4, status: "DECLINED" as const, responded_at: "2026-01-01T07:00:00Z" },
+      {
+        id: "x",
+        waitlist_position: 3,
+        status: "PENDING" as const,
+        responded_at: "2026-01-01T06:00:00Z",
+      },
+      {
+        id: "a",
+        waitlist_position: 1,
+        status: "CONFIRMED" as const,
+        responded_at: "2026-01-01T08:00:00Z",
+      },
+      {
+        id: "b",
+        waitlist_position: 2,
+        status: "CONFIRMED" as const,
+        responded_at: "2026-01-01T09:00:00Z",
+      },
+      {
+        id: "c",
+        waitlist_position: 4,
+        status: "DECLINED" as const,
+        responded_at: "2026-01-01T07:00:00Z",
+      },
     ];
 
     expect(getConfirmedAttendance(rows)).toEqual([
