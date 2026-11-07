@@ -95,7 +95,7 @@ begin
 
   execute 'set local role postgres';
   insert into public.section_players (section_id, user_id, name, position, skills, created_by)
-  values (current_setting('test_styles.section_id')::uuid, current_setting('test_styles.member_id')::uuid, 'Jogador que entrou durante cancelamento', 'ATA', '{}', current_setting('test_styles.admin_id')::uuid)
+  values (current_setting('test_styles.section_id')::uuid, null, 'Jogador que entrou durante cancelamento', 'ATA', '{}', current_setting('test_styles.admin_id')::uuid)
   returning id into late_player_id;
   execute 'set local role authenticated';
   if exists (select 1 from public.event_attendance where event_id = v_event_id and player_id = late_player_id) then raise exception 'Jogador incluído durante cancelamento recebeu presença antes da reativação.'; end if;
