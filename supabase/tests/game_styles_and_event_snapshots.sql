@@ -136,11 +136,30 @@ declare
   invalid_link text;
 begin
   foreach invalid_link in array array[
+    'https://www.google.com.br/maps/?hl=pt-BR',
+    'https://www.google.com.br/maps/place/Quadra',
+    'https://google.com/maps?q=-23.55,-46.63',
+    'https://maps.google.com.br/?q=quadra',
+    'https://maps.app.goo.gl/AbC123',
+    'https://goo.gl/maps/xyz',
+    'https://www.google.pt/maps/place/Lisboa'
+  ] loop
+    begin
+      perform public.validate_event_location(null, null, invalid_link, null, null);
+    exception when others then
+      raise exception 'Link válido foi rejeitado: %', invalid_link;
+    end;
+  end loop;
+  foreach invalid_link in array array[
     'javascript:alert(1)',
-    'http://google.com/maps',
-    'https://google.com.evil.com/maps',
-    'https://evil.com/maps',
-    'https://user@google.com/maps'
+    'data:text/html,x',
+    'http://www.google.com.br/maps',
+    'https://google.com.br.evil.com/maps',
+    'https://evilgoogle.com.br/maps',
+    'https://www.google.com.br@evil.com/maps',
+    'https://www.google.com.br:8080/maps',
+    'https://www.google.com.br/search?q=x',
+    'https://goo.gl/abc'
   ] loop
     rejected := false;
     begin
