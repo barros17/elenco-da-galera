@@ -85,7 +85,13 @@ export function PlayerForm({ editing, canCancel, onSubmit, onDone, onCancelEdit 
     }
     setSaving(true);
     try {
-      const saved = await onSubmit({ name, position, skills, weak_foot: weakFoot, photo_url: photo });
+      const saved = await onSubmit({
+        name,
+        position,
+        skills,
+        weak_foot: weakFoot,
+        photo_url: photo,
+      });
       setRevealed(saved);
       toast.success(editing ? "Jogador atualizado!" : `${saved.name} entrou na pelada!`);
       if (!editing) {
@@ -140,7 +146,11 @@ export function PlayerForm({ editing, canCancel, onSubmit, onDone, onCancelEdit 
               onChange={(e) => handlePhoto(e.target.files?.[0])}
             />
           </div>
-          {photo && <p className="text-xs text-muted-foreground">Toque em “Escolher foto” para ajustar novamente.</p>}
+          {photo && (
+            <p className="text-xs text-muted-foreground">
+              Toque em “Escolher foto” para ajustar novamente.
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -243,7 +253,14 @@ export function PlayerForm({ editing, canCancel, onSubmit, onDone, onCancelEdit 
             revealing
           />
         ) : (
-          <PlayerCard name={name} position={position} skills={skills} weakFoot={weakFoot} photoUrl={photo} size="lg" />
+          <PlayerCard
+            name={name}
+            position={position}
+            skills={skills}
+            weakFoot={weakFoot}
+            photoUrl={photo}
+            size="lg"
+          />
         )}
       </div>
 

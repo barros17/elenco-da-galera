@@ -138,7 +138,9 @@ export function PhotoCropper({ source, onCancel, onConfirm }: Props) {
             <Label htmlFor="foto-zoom" className="flex items-center gap-2">
               <ZoomIn className="h-4 w-4" /> Zoom
             </Label>
-            <span className="text-sm tabular-nums text-muted-foreground">{Math.round(zoom * 100)}%</span>
+            <span className="text-sm tabular-nums text-muted-foreground">
+              {Math.round(zoom * 100)}%
+            </span>
           </div>
           <Slider
             id="foto-zoom"
@@ -154,7 +156,9 @@ export function PhotoCropper({ source, onCancel, onConfirm }: Props) {
         </div>
 
         <DialogFooter className="gap-2 sm:space-x-0">
-          <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
           <Button type="button" onClick={confirmCrop} disabled={!image}>
             <Check className="mr-2 h-4 w-4" /> Usar esta foto
           </Button>
