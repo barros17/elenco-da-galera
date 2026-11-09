@@ -40,6 +40,7 @@ export function SectionHub({ section, onChanged }: Props) {
     queryKey: ["section-members", section?.section_id],
     queryFn: () => getSectionMembers(section!.section_id),
     enabled: !!section,
+    staleTime: 5 * 60_000,
   });
 
   async function runAction(action: () => Promise<void>, successMessage: string) {

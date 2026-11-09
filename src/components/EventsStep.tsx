@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Label } from "@/components/ui/label";
 import { PlayerPhoto } from "@/components/PlayerPhoto";
 import {
@@ -47,6 +48,7 @@ import {
   type GameModality,
   type NewFootballEvent,
 } from "@/lib/events";
+import { clearDraft, loadDraft, saveDraft } from "@/lib/draft-storage";
 
 type Props = {
   sectionId: string;
@@ -72,6 +74,7 @@ type Props = {
   onRefreshEvents: () => void;
   onRefreshAttendance: () => void;
   gameStyles: GameStyle[];
+  draftKey?: string | undefined;
 };
 
 const MODALITIES: Array<{ value: GameModality; label: string }> = [
@@ -119,6 +122,7 @@ export function EventsStep({
   onRefreshEvents,
   onRefreshAttendance,
   gameStyles,
+  draftKey,
 }: Props) {
   const [title, setTitle] = useState("");
   const [startsAt, setStartsAt] = useState(() =>
@@ -140,6 +144,53 @@ export function EventsStep({
   const [busy, setBusy] = useState(false);
   const editFormRef = useRef<HTMLFormElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!draftKey) return;
+    const draft = loadDraft<{
+      title: string;
+      startsAt: string;
+      endsAt: string;
+      modality: GameModality;
+      gameStyleId: string | null;
+      locationName: string;
+      locationAddress: string;
+      locationLink: string;
+    }>(draftKey);
+    if (!draft) return;
+    setTitle(draft.title);
+    setStartsAt(draft.startsAt);
+    setEndsAt(draft.endsAt);
+    setModality(draft.modality);
+    setGameStyleId(draft.gameStyleId);
+    setLocationName(draft.locationName);
+    setLocationAddress(draft.locationAddress);
+    setLocationLink(draft.locationLink);
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (!draftKey) return;
+    saveDraft(draftKey, {
+      title,
+      startsAt,
+      endsAt,
+      modality,
+      gameStyleId,
+      locationName,
+      locationAddress,
+      locationLink,
+    });
+  }, [
+    draftKey,
+    title,
+    startsAt,
+    endsAt,
+    modality,
+    gameStyleId,
+    locationName,
+    locationAddress,
+    locationLink,
+  ]);
 
   const selectedEvent = events.find((event) => event.id === selectedEventId) ?? null;
   const attendanceByPlayerId = new Map(attendance.map((row) => [row.player_id, row]));
@@ -175,6 +226,7 @@ export function EventsStep({
   }
 
   function resetForm() {
+    if (draftKey) clearDraft(draftKey);
     setEditingEventId(null);
     setTitle("");
     setModality("futsal");
@@ -362,7 +414,7 @@ export function EventsStep({
             </div>
             <div className="space-y-2">
               <Label htmlFor="event-modality">Modalidade</Label>
-              <select
+              <NativeSelect
                 id="event-modality"
                 value={modality === "custom" ? (gameStyleId ?? "custom") : modality}
                 onChange={(event) => {
@@ -375,7 +427,7 @@ export function EventsStep({
                     setGameStyleId(value === "custom" ? null : value);
                   }
                 }}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className="min-w-0 max-w-full"
               >
                 {MODALITIES.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -391,7 +443,7 @@ export function EventsStep({
                     ))}
                   </optgroup>
                 )}
-              </select>
+              </NativeSelect>
             </div>
             <div className="space-y-2">
               <Label htmlFor="event-start">Início</Label>
@@ -779,7 +831,7 @@ export function EventsStep({
                           )}
                         </div>
                         {isAdmin && selectedEvent.status === "scheduled" ? (
-                          <select
+                          <NativeSelect
                             value={status}
                             disabled={busy || !row}
                             onChange={(event) =>
@@ -789,12 +841,12 @@ export function EventsStep({
                               )
                             }
                             aria-label={`Presença de ${player.name}`}
-                            className="h-9 shrink-0 rounded-md border border-input bg-background px-2 text-sm"
+                            className="h-10 min-w-0 max-w-full shrink-0 px-2"
                           >
                             <option value="PENDING">{statusLabel("PENDING")}</option>
                             <option value="CONFIRMED">{statusLabel("CONFIRMED")}</option>
                             <option value="DECLINED">{statusLabel("DECLINED")}</option>
-                          </select>
+                          </NativeSelect>
                         ) : (
                           <span
                             className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${

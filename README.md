@@ -116,3 +116,7 @@ bun run build
 - O cálculo de `overall` deve ser validado no servidor e não depender da UI
 - O código de sorteio fica em `src/lib/team-balancer.ts`
 - As regras de overall/posições/skills ficam em `src/lib/players.ts`
+
+## Cache de produção (infra)
+
+O app ainda não instala service worker. Na próxima etapa de infraestrutura, sirva `assets/*` com cache longo (os nomes têm hash) e `_shell.html` com `Cache-Control: no-cache`, para evitar que o shell HTML aponte para bundles antigos.

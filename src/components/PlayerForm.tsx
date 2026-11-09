@@ -19,6 +19,7 @@ import {
 } from "@/lib/players";
 import { type PlayerInput } from "@/lib/player-queries";
 import { cn } from "@/lib/utils";
+import { clearDraft, loadDraft, saveDraft } from "@/lib/draft-storage";
 
 type Props = {
   editing?: Player | null;
@@ -27,9 +28,17 @@ type Props = {
   onSubmit: (input: PlayerInput) => Promise<Player>;
   onDone?: (player: Player) => void;
   onCancelEdit?: () => void;
+  draftKey?: string | undefined;
 };
 
-export function PlayerForm({ editing, canCancel, onSubmit, onDone, onCancelEdit }: Props) {
+export function PlayerForm({
+  editing,
+  canCancel,
+  onSubmit,
+  onDone,
+  onCancelEdit,
+  draftKey,
+}: Props) {
   const [name, setName] = useState("");
   const [position, setPosition] = useState<Position>("MEI");
   const [skills, setSkills] = useState<Skills>(() => defaultSkills("MEI"));
@@ -50,6 +59,23 @@ export function PlayerForm({ editing, canCancel, onSubmit, onDone, onCancelEdit 
       setRevealed(null);
     }
   }, [editing]);
+
+  useEffect(() => {
+    if (!draftKey || editing) return;
+    const draft = loadDraft<{ name: string; position: Position; skills: Skills; weakFoot: number }>(
+      draftKey,
+    );
+    if (!draft) return;
+    setName(draft.name);
+    setPosition(draft.position);
+    setSkills(draft.skills);
+    setWeakFoot(draft.weakFoot);
+  }, [draftKey, editing]);
+
+  useEffect(() => {
+    if (!draftKey || editing) return;
+    saveDraft(draftKey, { name, position, skills, weakFoot });
+  }, [draftKey, editing, name, position, skills, weakFoot]);
 
   function changePosition(next: Position) {
     const wasGk = position === "GOL";
@@ -95,6 +121,7 @@ export function PlayerForm({ editing, canCancel, onSubmit, onDone, onCancelEdit 
       setRevealed(saved);
       toast.success(editing ? "Jogador atualizado!" : `${saved.name} entrou na pelada!`);
       if (!editing) {
+        if (draftKey) clearDraft(draftKey);
         setName("");
         setPhoto(null);
         setWeakFoot(0);
@@ -234,7 +261,14 @@ export function PlayerForm({ editing, canCancel, onSubmit, onDone, onCancelEdit 
             {editing ? "Salvar alterações" : "Salvar jogador"}
           </Button>
           {(editing || canCancel) && (
-            <Button variant="outline" size="lg" onClick={onCancelEdit}>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                if (draftKey) clearDraft(draftKey);
+                onCancelEdit?.();
+              }}
+            >
               Cancelar
             </Button>
           )}

@@ -29,7 +29,7 @@ export function FootballPitch({
       <h3 className="text-center font-display text-xl font-bold uppercase text-foreground">
         {teamName}
       </h3>
-      <div className="relative mx-auto aspect-[0.72] w-full max-w-[25rem] overflow-hidden rounded-xl border-4 border-white/65 bg-[linear-gradient(180deg,#237343_0%,#1d683a_50%,#237343_100%)] shadow-card-deep">
+      <div className="relative mx-auto aspect-[0.72] w-full max-w-[25rem] overflow-hidden rounded-xl border-4 border-white/65 bg-[linear-gradient(180deg,#237343_0%,#1d683a_50%,#237343_100%)] shadow-card-deep [container-type:inline-size]">
         <div className="pointer-events-none absolute inset-[4%] rounded-lg border border-white/50" />
         <div className="pointer-events-none absolute inset-x-[4%] top-1/2 border-t border-white/50" />
         <div className="pointer-events-none absolute top-1/2 left-1/2 h-[17%] aspect-square -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/50" />
@@ -59,14 +59,14 @@ export function FootballPitch({
                   : `Posição vazia: ${slot.label}. Selecione para preencher.`
               }
               aria-pressed={selected}
-              className={`absolute z-10 flex min-h-12 w-[5.5rem] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-lg border px-1 py-1 text-center text-white shadow-lg transition ${
+              className={`absolute z-10 flex min-h-11 w-[clamp(3.5rem,21cqw,5.5rem)] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-lg border px-1 py-1 text-center text-white shadow-lg transition ${
                 selected
                   ? "border-primary bg-black/90 ring-2 ring-primary"
                   : player
                     ? "border-white/60 bg-black/80 hover:border-primary"
                     : "border-dashed border-white/75 bg-black/35 hover:bg-black/60"
               }`}
-              style={{ left: `${slot.x}%`, top: `${slot.y}%` }}
+              style={{ left: `${Math.min(88, Math.max(12, slot.x))}%`, top: `${slot.y}%` }}
             >
               {player ? (
                 <>
@@ -80,19 +80,21 @@ export function FootballPitch({
                         <UserRound className="h-5 w-5 shrink-0 rounded-full bg-white/15 p-0.5" />
                       }
                     />
-                    <span className="min-w-0 flex-1 truncate text-[9px] font-bold">
+                    <span className="min-w-0 flex-1 truncate text-[clamp(10px,2.8cqw,0.7rem)] font-bold">
                       {player.name}
                     </span>
                   </span>
-                  <span className="mt-0.5 flex w-full justify-between text-[8px] leading-none text-white/75">
+                  <span className="mt-0.5 flex w-full justify-between text-[clamp(10px,2.4cqw,0.65rem)] leading-none text-white/75">
                     <span>{slot.label}</span>
                     <span className="font-bold text-primary">{player.overall}</span>
                   </span>
                 </>
               ) : (
                 <>
-                  <span className="text-[9px] font-bold">+ Vazio</span>
-                  <span className="text-[8px] text-white/75">{slot.label}</span>
+                  <span className="text-[clamp(10px,2.8cqw,0.7rem)] font-bold">+ Vazio</span>
+                  <span className="text-[clamp(10px,2.4cqw,0.65rem)] text-white/75">
+                    {slot.label}
+                  </span>
                 </>
               )}
             </button>
