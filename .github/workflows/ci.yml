@@ -95,6 +95,18 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Start preview server
-        run: bun run build && (bun run preview -- --host 127.0.0.1 > /tmp/elenco-preview.log 2>&1 &)
+        run: |
+          bun run build
+          nohup bun run preview -- --host 127.0.0.1 > /tmp/elenco-preview.log 2>&1 &
+      - name: Wait for preview server
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/elenco-preview.log
+          exit 1
       - name: Run mobile smoke test
         run: bun run test:mobile
