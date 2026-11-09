@@ -370,7 +370,10 @@ function Index() {
                 >
                   <Icon className="h-4 w-4" />
                   <span className="min-w-0 max-w-full truncate">
-                    {s.id}. {s.label}
+                    <span className="sm:hidden">{s.label}</span>
+                    <span className="hidden sm:inline">
+                      {s.id}. {s.label}
+                    </span>
                   </span>
                 </button>
               );

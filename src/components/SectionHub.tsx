@@ -71,7 +71,7 @@ export function SectionHub({ section, onChanged }: Props) {
 
   if (!section) {
     return (
-      <section className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
+      <section className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2 [&>form]:min-w-0">
         <form
           className="space-y-4 rounded-2xl border border-border bg-card p-6"
           onSubmit={(event) => {

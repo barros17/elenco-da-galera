@@ -394,7 +394,7 @@ export function EventsStep({
             </h3>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+            <div className="min-w-0 space-y-2 sm:col-span-2 lg:col-span-1">
               <Label htmlFor="event-title">Nome</Label>
               <Input
                 id="event-title"
@@ -412,7 +412,7 @@ export function EventsStep({
                 </p>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <Label htmlFor="event-modality">Modalidade</Label>
               <NativeSelect
                 id="event-modality"
@@ -445,7 +445,7 @@ export function EventsStep({
                 )}
               </NativeSelect>
             </div>
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <Label htmlFor="event-start">Início</Label>
               <Input
                 id="event-start"
@@ -455,7 +455,7 @@ export function EventsStep({
                 required
               />
             </div>
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <Label htmlFor="event-end">Término</Label>
               <Input
                 id="event-end"
@@ -465,7 +465,7 @@ export function EventsStep({
                 required
               />
             </div>
-            <div className="flex flex-col items-stretch gap-2">
+            <div className="min-w-0 flex flex-col items-stretch gap-2">
               <Button className="w-full" disabled={busy}>
                 {editingEventId ? "Salvar alterações" : "Criar jogo"}
               </Button>
@@ -483,7 +483,7 @@ export function EventsStep({
             </div>
           </div>
           <div className="grid gap-4 rounded-xl border border-border/70 bg-muted/20 p-4 sm:grid-cols-2">
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <Label htmlFor="event-location-name">Nome do local</Label>
               <Input
                 id="event-location-name"
@@ -493,7 +493,7 @@ export function EventsStep({
                 placeholder="Quadra do bairro"
               />
             </div>
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <Label htmlFor="event-location-address">Endereço</Label>
               <Input
                 id="event-location-address"
@@ -503,7 +503,7 @@ export function EventsStep({
                 placeholder="Rua, número, cidade"
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
+            <div className="min-w-0 space-y-2 sm:col-span-2">
               <Label htmlFor="event-location-link">Link do Google Maps</Label>
               <Input
                 id="event-location-link"
@@ -534,7 +534,7 @@ export function EventsStep({
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-        <section className="space-y-3 rounded-2xl border border-border bg-card p-5">
+        <section className="min-w-0 space-y-3 rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <CalendarDays className="h-5 w-5 text-primary" />
@@ -606,7 +606,7 @@ export function EventsStep({
           )}
         </section>
 
-        <section className="space-y-4 rounded-2xl border border-border bg-card p-5">
+        <section className="min-w-0 space-y-4 rounded-2xl border border-border bg-card p-5">
           {!selectedEvent ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <CircleHelp className="h-4 w-4" />
@@ -809,9 +809,10 @@ export function EventsStep({
                     return (
                       <div
                         key={player.id}
+                        data-testid="attendance-row"
                         className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border px-3 py-2"
                       >
-                        <div className="min-w-0">
+                        <div data-testid="attendance-player" className="min-w-0 flex-1">
                           <span className="flex items-center gap-2">
                             <PlayerPhoto
                               photoUrl={player.photo_url}
@@ -832,6 +833,7 @@ export function EventsStep({
                         </div>
                         {isAdmin && selectedEvent.status === "scheduled" ? (
                           <NativeSelect
+                            data-testid="attendance-status"
                             value={status}
                             disabled={busy || !row}
                             onChange={(event) =>
@@ -841,7 +843,7 @@ export function EventsStep({
                               )
                             }
                             aria-label={`Presença de ${player.name}`}
-                            className="h-10 min-w-0 max-w-full shrink-0 px-2"
+                            className="h-10 w-auto min-w-[7.5rem] max-w-[45%] shrink-0 px-2"
                           >
                             <option value="PENDING">{statusLabel("PENDING")}</option>
                             <option value="CONFIRMED">{statusLabel("CONFIRMED")}</option>

@@ -171,7 +171,7 @@ export function GameStylesPanel({ sectionId, isAdmin }: Props) {
       {open && isAdmin && (
         <form
           onSubmit={(event) => void save(event)}
-          className="mt-4 grid gap-4 rounded-xl border border-primary/40 bg-primary/5 p-4 sm:grid-cols-2"
+          className="mt-4 grid gap-4 rounded-xl border border-primary/40 bg-primary/5 p-4 sm:grid-cols-2 [&>div]:min-w-0"
         >
           <div className="space-y-2">
             <Label htmlFor="style-name">Nome</Label>

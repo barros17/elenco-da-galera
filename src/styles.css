@@ -375,16 +375,6 @@
     border-color: var(--color-border);
   }
 
-  .grid > * {
-    min-width: 0;
-  }
-
-  input,
-  select,
-  textarea {
-    max-width: 100%;
-  }
-
   body {
     background-color: var(--color-background);
     min-height: 100dvh;
@@ -417,5 +407,13 @@
     font-family: var(--font-display);
     text-transform: uppercase;
     letter-spacing: 0.02em;
+  }
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
   }
 }

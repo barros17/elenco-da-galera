@@ -145,7 +145,7 @@ export function PlayerForm({
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_auto]">
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
         <div className="space-y-2">
           <Label htmlFor="nome">Nome do jogador</Label>
           <Input
@@ -275,7 +275,7 @@ export function PlayerForm({
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-3 lg:sticky lg:top-6 lg:self-start">
+      <div className="min-w-0 flex flex-col items-center gap-3 lg:sticky lg:top-6 lg:self-start">
         <p className="font-display text-sm tracking-widest text-muted-foreground">
           {revealed ? "Carta revelada" : "Pré-visualização"}
         </p>
