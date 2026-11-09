@@ -86,15 +86,15 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
+          bun-version: 1.2.18
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Start preview server
-        run: npm run build && (npm run preview -- --host 127.0.0.1 > /tmp/elenco-preview.log 2>&1 &)
+        run: bun run build && (bun run preview -- --host 127.0.0.1 > /tmp/elenco-preview.log 2>&1 &)
       - name: Run mobile smoke test
-        run: npm run test:mobile
+        run: bun run test:mobile
