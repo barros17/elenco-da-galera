@@ -20,6 +20,7 @@ import {
   type DrawResult,
 } from "@/lib/team-balancer";
 import { createInitialLineup, movePlayerToReserves, movePlayerToSlot } from "@/lib/team-formations";
+import { confirmedSignature, drawStorageKey, loadDraw, saveDraw } from "@/lib/draw-storage";
 
 type SelectedLocation =
   | { type: "field"; teamIndex: number; slotIndex: number }
@@ -57,10 +58,8 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
         format: `${event.formation.defenders}-${event.formation.midfielders}-${event.formation.attackers}`,
       }
     : null;
-  const drawKey = `${event?.id ?? ""}:${confirmedPlayers
-    .map((player) => player.id)
-    .sort()
-    .join(",")}`;
+  const signature = confirmedSignature(confirmedPlayers);
+  const drawKey = `${event?.id ?? ""}:${signature}`;
 
   useEffect(() => {
     setResult(null);
@@ -68,6 +67,29 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
     setLayout(null);
     setSelected(null);
   }, [drawKey]);
+
+  useEffect(() => {
+    if (!event || typeof window === "undefined") return;
+    const restored = loadDraw<TeamLayout>(event.id, signature);
+    if (restored) {
+      setResult(restored.result);
+      setNames(restored.names);
+      setLayout(restored.layout);
+      return;
+    }
+    try {
+      const raw = window.localStorage.getItem(drawStorageKey(event.id));
+      if (raw && JSON.parse(raw).signature !== signature) {
+        toast.info("A lista de confirmados mudou; gere o sorteio de novo.");
+      }
+    } catch {
+      // Best-effort notification only.
+    }
+  }, [event, signature]);
+
+  useEffect(() => {
+    if (event && result && layout) saveDraw(event.id, { signature, result, names, layout });
+  }, [event, layout, names, result, signature]);
 
   const balance = useMemo(() => {
     if (!result || !layout) return 0;

@@ -29,6 +29,7 @@ export function useGameStyles(sectionId: string | undefined) {
     queryKey: ["game-styles", sectionId],
     queryFn: () => listGameStyles(sectionId!),
     enabled: Boolean(sectionId),
+    staleTime: 5 * 60_000,
   });
 }
 

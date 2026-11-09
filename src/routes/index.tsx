@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarCheck, ClipboardList, LogOut, Trophy, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +22,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
 import { getMySection } from "@/lib/sections";
 import { useGameStyles } from "@/lib/game-style-queries";
+import { clearPersistedQueryCache, persistQueriesForUser } from "@/lib/query-persistence";
+import { clearUserDrafts } from "@/lib/draft-storage";
+import { clearDraws } from "@/lib/draw-storage";
 import {
   getConfirmedAttendance,
   type AttendanceStatus,
@@ -39,7 +42,24 @@ import {
   updateEventAttendance,
 } from "@/lib/event-queries";
 
+export type HomeSearch = { etapa: 1 | 2 | 3 | 4; jogo?: string; carta?: string };
+
+export function validateHomeSearch(search: Record<string, unknown>): HomeSearch {
+  const etapa = Number(search["etapa"]);
+  return {
+    etapa: etapa === 2 || etapa === 3 || etapa === 4 ? etapa : 1,
+    ...(typeof search["jogo"] === "string" && /^[0-9a-f-]{8,}$/i.test(search["jogo"])
+      ? { jogo: search["jogo"] }
+      : {}),
+    ...(search["carta"] === "novo" ||
+    (typeof search["carta"] === "string" && /^[0-9a-f-]{8,}$/i.test(search["carta"]))
+      ? { carta: search["carta"] }
+      : {}),
+  };
+}
+
 export const Route = createFileRoute("/")({
+  validateSearch: validateHomeSearch,
   head: () => ({
     meta: [
       { title: "Elenco da Galera — Monte seu time" },
@@ -81,22 +101,29 @@ function isMissingDatabaseTable(error: unknown): boolean {
 }
 
 function Index() {
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const navigate = useNavigate({ from: "/" });
+  const search = Route.useSearch();
+  const step = search.etapa;
   const [editing, setEditing] = useState<Player | null>(null);
-  const [creatingNew, setCreatingNew] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const creatingNew = search.carta === "novo";
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const queryClient = useQueryClient();
-
-  useEffect(() => setMounted(true), []);
+  const previousUserId = useRef<string | null>(null);
 
   useEffect(() => {
     let active = true;
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
       setAuthLoading(false);
-      queryClient.clear();
+      if (_event === "SIGNED_OUT" || _event === "USER_UPDATED") {
+        queryClient.clear();
+        clearPersistedQueryCache(session?.user.id);
+        if (session?.user.id) {
+          clearUserDrafts(session.user.id);
+          clearDraws();
+        }
+      }
     });
 
     void supabase.auth.getSession().then(({ data, error }) => {
@@ -113,12 +140,25 @@ function Index() {
       active = false;
       authListener.subscription.unsubscribe();
     };
-  }, [queryClient]);
+  }, [queryClient, session?.user.id]);
+
+  useEffect(() => {
+    if (!session?.user.id) return;
+    if (previousUserId.current && previousUserId.current !== session.user.id) {
+      queryClient.clear();
+      clearPersistedQueryCache(previousUserId.current);
+      clearUserDrafts(previousUserId.current);
+      clearDraws();
+    }
+    previousUserId.current = session.user.id;
+    return persistQueriesForUser(queryClient, session.user.id);
+  }, [queryClient, session?.user.id]);
 
   const sectionQuery = useQuery({
     queryKey: ["section"],
     queryFn: getMySection,
-    enabled: mounted && !!session,
+    enabled: !!session,
+    staleTime: 5 * 60_000,
   });
 
   const section = sectionQuery.data ?? null;
@@ -126,32 +166,39 @@ function Index() {
   const playersQuery = useQuery({
     queryKey: ["players", section?.section_id],
     queryFn: () => listPlayers(section!.section_id),
-    enabled: mounted && !!session && !!section,
+    enabled: !!session && !!section,
+    staleTime: 5 * 60_000,
   });
   const players = playersQuery.data ?? EMPTY_PLAYERS;
   const eventsQuery = useQuery({
     queryKey: ["section-events", section?.section_id],
     queryFn: () => listSectionEvents(section!.section_id, section!.is_admin),
-    enabled: mounted && !!session && !!section,
+    enabled: !!session && !!section,
     refetchInterval: 15_000,
   });
   const events = eventsQuery.data ?? [];
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const selectedEventId = search.jogo ?? null;
+  const setSelectedEventId = (id: string | null) => {
+    void navigate({
+      search: (previous) => {
+        const { jogo: _jogo, ...rest } = previous;
+        return id ? { ...rest, jogo: id } : rest;
+      },
+    });
+  };
 
   useEffect(() => {
     if (!eventsQuery.data) return;
-    setSelectedEventId((current) =>
-      eventsQuery.data.some((event) => event.id === current)
-        ? current
-        : (eventsQuery.data[0]?.id ?? null),
-    );
-  }, [eventsQuery.data]);
+    if (search.jogo && eventsQuery.data.some((event) => event.id === search.jogo)) return;
+    const next = eventsQuery.data[0]?.id ?? null;
+    if (next !== search.jogo) setSelectedEventId(next);
+  }, [eventsQuery.data, search.jogo]);
 
   const selectedEvent = events.find((event) => event.id === selectedEventId) ?? null;
   const attendanceQuery = useQuery({
     queryKey: ["event-attendance", selectedEvent?.id],
     queryFn: () => listEventAttendance(selectedEvent!.id),
-    enabled: mounted && !!session && !!selectedEvent,
+    enabled: !!session && !!selectedEvent,
     refetchInterval: 10_000,
   });
   const attendance = attendanceQuery.data ?? EMPTY_ATTENDANCE;
@@ -193,7 +240,11 @@ function Index() {
   );
   const ownPlayer = players.find((player) => player.user_id === session?.user.id) ?? null;
   const isAdmin = section?.is_admin ?? false;
-  const playerBeingEdited = creatingNew ? null : (editing ?? ownPlayer);
+  const playerFromUrl =
+    search.carta && search.carta !== "novo"
+      ? (players.find((player) => player.id === search.carta) ?? null)
+      : null;
+  const playerBeingEdited = creatingNew ? null : (playerFromUrl ?? editing ?? ownPlayer);
 
   async function refreshSectionData() {
     await Promise.all([
@@ -252,11 +303,9 @@ function Index() {
     }
   }
 
-  if (!mounted) return null;
-
   return (
-    <div className="min-h-screen">
-      <Toaster position="bottom-center" />
+    <div className="min-h-dvh">
+      <Toaster position="bottom-center" className="pb-[env(safe-area-inset-bottom)]" />
       <header className="border-b border-border/60 bg-background/70 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4 py-5 text-center sm:py-7">
           <h1>
@@ -297,8 +346,8 @@ function Index() {
       </header>
 
       {session && !authLoading && section && (
-        <nav className="sticky top-0 z-20 border-b border-border/60 bg-background/90 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl gap-2 px-3 py-3">
+        <nav className="sticky top-0 z-20 border-b border-border/60 bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+          <div className="scrollbar-none mx-auto flex min-w-0 max-w-6xl gap-2 overflow-x-auto px-[max(0.75rem,env(safe-area-inset-left))] py-3 pr-[max(0.75rem,env(safe-area-inset-right))]">
             {STEPS.map((s) => {
               const Icon = s.icon;
               const active = step === s.id;
@@ -309,22 +358,20 @@ function Index() {
                   onClick={() => {
                     if (s.id === 1) {
                       setEditing(ownPlayer);
-                      setCreatingNew(false);
                     }
-                    setStep(s.id);
+                    void navigate({ search: (previous) => ({ ...previous, etapa: s.id }) });
                   }}
                   className={cn(
-                    "flex flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 font-display text-sm font-bold uppercase tracking-wide transition-all",
+                    "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2 text-[11px] font-display font-bold uppercase tracking-wide transition-all sm:flex-row sm:gap-2 sm:px-3 sm:py-2.5 sm:text-sm",
                     active
                       ? "border-primary bg-primary text-primary-foreground shadow-glow-gold"
                       : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
                   )}
                 >
                   <Icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">
+                  <span className="min-w-0 max-w-full truncate">
                     {s.id}. {s.label}
                   </span>
-                  <span className="sm:hidden">{s.label}</span>
                 </button>
               );
             })}
@@ -336,9 +383,12 @@ function Index() {
         <SectionHub section={section} onChanged={refreshSectionData} />
       )}
 
-      <main className="mx-auto max-w-6xl px-4 py-8">
+      <main className="mx-auto max-w-6xl min-w-0 px-[max(1rem,env(safe-area-inset-left))] py-8 pb-[calc(2rem+env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))]">
         {authLoading ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">Verificando login...</p>
+          <div className="space-y-4 py-12" aria-label="Carregando">
+            <div className="mx-auto h-8 w-48 animate-pulse rounded bg-muted" />
+            <div className="mx-auto h-24 max-w-md animate-pulse rounded-2xl bg-muted" />
+          </div>
         ) : !session ? (
           <section className="mx-auto max-w-md rounded-2xl border border-border bg-card p-6 text-center shadow-lg">
             <h2 className="font-display text-2xl text-foreground">Entre para continuar</h2>
@@ -397,15 +447,28 @@ function Index() {
               editing={playerBeingEdited}
               canCancel={creatingNew}
               onSubmit={handleSubmit}
+              draftKey={
+                session?.user.id && section
+                  ? `draft:v1:${session.user.id}:${section.section_id}:player:${creatingNew ? "new" : (playerBeingEdited?.id ?? "self")}`
+                  : undefined
+              }
               onDone={(saved) => {
                 setEditing(saved);
-                setCreatingNew(false);
-                setStep(2);
+                void navigate({
+                  search: (previous) => {
+                    const { carta: _carta, ...rest } = previous;
+                    return { ...rest, etapa: 2 };
+                  },
+                });
               }}
               onCancelEdit={() => {
                 setEditing(null);
-                setCreatingNew(false);
-                setStep(2);
+                void navigate({
+                  search: (previous) => {
+                    const { carta: _carta, ...rest } = previous;
+                    return { ...rest, etapa: 2 };
+                  },
+                });
               }}
             />
           </section>
@@ -417,14 +480,12 @@ function Index() {
               currentUserId={session.user.id}
               isAdmin={isAdmin}
               onAdd={() => {
-                setCreatingNew(true);
                 setEditing(null);
-                setStep(1);
+                void navigate({ search: (previous) => ({ ...previous, etapa: 1, carta: "novo" }) });
               }}
               onEdit={(p) => {
                 setEditing(p);
-                setCreatingNew(false);
-                setStep(1);
+                void navigate({ search: (previous) => ({ ...previous, etapa: 1, carta: p.id }) });
               }}
               onDelete={(p) => removeMutation.mutate(p.id)}
             />
@@ -471,6 +532,11 @@ function Index() {
             onRefreshEvents={() => void eventsQuery.refetch()}
             onRefreshAttendance={() => void attendanceQuery.refetch()}
             gameStyles={gameStylesQuery.data ?? []}
+            draftKey={
+              session?.user.id && section
+                ? `draft:v1:${session.user.id}:${section.section_id}:event:${selectedEventId ?? "new"}`
+                : undefined
+            }
           />
         ) : (
           <section className="animate-rise space-y-6">
