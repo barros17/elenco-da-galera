@@ -20,7 +20,14 @@ import {
   type DrawResult,
 } from "@/lib/team-balancer";
 import { createInitialLineup, movePlayerToReserves, movePlayerToSlot } from "@/lib/team-formations";
-import { confirmedSignature, drawStorageKey, loadDraw, saveDraw } from "@/lib/draw-storage";
+import {
+  confirmedSignature,
+  drawStorageKey,
+  loadDraw,
+  saveDraw,
+  shouldPersistDraw,
+  type PersistedDraw,
+} from "@/lib/draw-storage";
 
 type SelectedLocation =
   | { type: "field"; teamIndex: number; slotIndex: number }
@@ -39,9 +46,7 @@ type Props = {
 };
 
 export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendanceError }: Props) {
-  const [result, setResult] = useState<DrawResult | null>(null);
-  const [names, setNames] = useState<string[]>([]);
-  const [layout, setLayout] = useState<TeamLayout | null>(null);
+  const [drawState, setDrawState] = useState<PersistedDraw<TeamLayout> | null>(null);
   const [selected, setSelected] = useState<SelectedLocation | null>(null);
   const [downloading, setDownloading] = useState(false);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -60,11 +65,12 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
     : null;
   const signature = confirmedSignature(confirmedPlayers);
   const drawKey = `${event?.id ?? ""}:${signature}`;
+  const result = drawState?.result ?? null;
+  const names = drawState?.names ?? [];
+  const layout = drawState?.layout ?? null;
 
   useEffect(() => {
-    setResult(null);
-    setNames([]);
-    setLayout(null);
+    setDrawState(null);
     setSelected(null);
   }, [drawKey]);
 
@@ -72,9 +78,7 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
     if (!event || typeof window === "undefined") return;
     const restored = loadDraw<TeamLayout>(event.id, signature);
     if (restored) {
-      setResult(restored.result);
-      setNames(restored.names);
-      setLayout(restored.layout);
+      setDrawState(restored);
       return;
     }
     try {
@@ -88,8 +92,8 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
   }, [event, signature]);
 
   useEffect(() => {
-    if (event && result && layout) saveDraw(event.id, { signature, result, names, layout });
-  }, [event, layout, names, result, signature]);
+    if (event && shouldPersistDraw(drawState, signature)) saveDraw(event.id, drawState);
+  }, [drawState, event, signature]);
 
   const balance = useMemo(() => {
     if (!result || !layout) return 0;
@@ -139,18 +143,21 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
       return;
     }
 
-    setResult(nextResult);
-    setNames(nextResult.teams.map((team) => team.name));
-    setLayout({
-      teams: nextResult.teams.map((team) =>
-        createInitialLineup(team.players, {
-          hasGoalkeeper: event.formation.has_goalkeeper,
-          defenders: event.formation.defenders,
-          midfielders: event.formation.midfielders,
-          attackers: event.formation.attackers,
-        }),
-      ),
-      reserves: nextResult.reserves,
+    setDrawState({
+      signature,
+      result: nextResult,
+      names: nextResult.teams.map((team) => team.name),
+      layout: {
+        teams: nextResult.teams.map((team) =>
+          createInitialLineup(team.players, {
+            hasGoalkeeper: event.formation.has_goalkeeper,
+            defenders: event.formation.defenders,
+            midfielders: event.formation.midfielders,
+            attackers: event.formation.attackers,
+          }),
+        ),
+        reserves: nextResult.reserves,
+      },
     });
     setSelected(null);
     if (nextResult.reserves.length > 0) {
@@ -168,9 +175,15 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
       setSelected(null);
       return;
     }
-    setLayout((current) =>
+    setDrawState((current) =>
       current
-        ? movePlayerToSlot(current.teams, current.reserves, selected, { teamIndex, slotIndex })
+        ? {
+            ...current,
+            layout: movePlayerToSlot(current.layout.teams, current.layout.reserves, selected, {
+              teamIndex,
+              slotIndex,
+            }),
+          }
         : current,
     );
     setSelected(null);
@@ -190,20 +203,23 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
   function handleReserveClick(reserveIndex: number) {
     if (!layout) return;
     if (selected?.type === "field") {
-      setLayout((current) =>
+      setDrawState((current) =>
         current
-          ? movePlayerToSlot(
-              current.teams,
-              current.reserves,
-              {
-                type: "reserve",
-                reserveIndex,
-              },
-              {
-                teamIndex: selected.teamIndex,
-                slotIndex: selected.slotIndex,
-              },
-            )
+          ? {
+              ...current,
+              layout: movePlayerToSlot(
+                current.layout.teams,
+                current.layout.reserves,
+                {
+                  type: "reserve",
+                  reserveIndex,
+                },
+                {
+                  teamIndex: selected.teamIndex,
+                  slotIndex: selected.slotIndex,
+                },
+              ),
+            }
           : current,
       );
       setSelected(null);
@@ -214,12 +230,15 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
 
   function sendSelectedToReserves() {
     if (!layout || selected?.type !== "field") return;
-    setLayout((current) =>
+    setDrawState((current) =>
       current
-        ? movePlayerToReserves(current.teams, current.reserves, {
-            teamIndex: selected.teamIndex,
-            slotIndex: selected.slotIndex,
-          })
+        ? {
+            ...current,
+            layout: movePlayerToReserves(current.layout.teams, current.layout.reserves, {
+              teamIndex: selected.teamIndex,
+              slotIndex: selected.slotIndex,
+            }),
+          }
         : current,
     );
     setSelected(null);
@@ -363,10 +382,15 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
                       <Input
                         value={names[teamIndex] ?? team.name}
                         onChange={(event) =>
-                          setNames((previous) =>
-                            previous.map((name, index) =>
-                              index === teamIndex ? event.target.value : name,
-                            ),
+                          setDrawState((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  names: current.names.map((name, index) =>
+                                    index === teamIndex ? event.target.value : name,
+                                  ),
+                                }
+                              : current,
                           )
                         }
                         className="h-auto w-auto max-w-[18rem] min-w-[10rem] border-0 bg-transparent px-0 font-display text-2xl font-bold tracking-wide uppercase shadow-none focus-visible:ring-0"

@@ -70,6 +70,11 @@ describe("estado mobile — novos search params (aba/visao/dialogo/jogo/id)", ()
     const result = validateSearch({ jogo: "not-a-uuid" });
     expect(result.jogo).toBeUndefined();
   });
+
+  it("preserva convite sanitizado na URL", () => {
+    expect(validateSearch({ invite: "a1b2c3d4" })).toMatchObject({ invite: "A1B2C3D4" });
+    expect(validateSearch({ invite: "abc" })).not.toHaveProperty("invite");
+  });
 });
 
 describe("estado mobile — compatibilidade com links antigos (etapa/carta)", () => {

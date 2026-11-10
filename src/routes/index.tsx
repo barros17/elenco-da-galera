@@ -54,6 +54,7 @@ import { withoutDialog } from "@/lib/navigation";
 
 export type AppSearch = {
   aba: "jogos" | "elenco" | "secao";
+  invite?: string;
   jogo?: string;
   visao?: "presenca" | "times";
   dialogo?:
@@ -126,9 +127,15 @@ export function validateSearch(raw: Record<string, unknown>): AppSearch {
 
   const rawId = raw["id"] ?? legacy.id;
   const id = typeof rawId === "string" && /^[0-9a-f-]{8,}$/i.test(rawId) ? rawId : undefined;
+  const rawInvite = raw["invite"];
+  const invite =
+    typeof rawInvite === "string" && /^[a-z0-9]{4,32}$/i.test(rawInvite)
+      ? rawInvite.toUpperCase()
+      : undefined;
 
   return {
     aba,
+    ...(invite ? { invite } : {}),
     ...(visao ? { visao } : {}),
     ...(dialogo ? { dialogo } : {}),
     ...(jogo ? { jogo } : {}),
@@ -423,9 +430,13 @@ function Index() {
   // ─── Auth actions ────────────────────────────────────────────────────────────
 
   async function handleGoogleSignIn() {
+    const invite = search.invite;
+    if (invite) window.sessionStorage.setItem("pending-invite", invite);
+    const redirectUrl = new URL(window.location.href);
+    if (invite) redirectUrl.searchParams.set("invite", invite);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: redirectUrl.toString() },
     });
     if (error) {
       console.error("Google sign-in failed:", error);
@@ -565,12 +576,21 @@ function Index() {
           /* Sem seção: onboarding com dois botões grandes */
           <SectionHubSemSecao
             onChanged={refreshSectionData}
+            {...(search.invite ? { invite: search.invite } : {})}
             initialDialogo={
               search.dialogo === "criar-secao" || search.dialogo === "entrar-secao"
                 ? search.dialogo
                 : undefined
             }
             onCloseDialogo={() => closeDialog()}
+            onInviteConsumed={() =>
+              void navigate({
+                search: (prev) => {
+                  const { invite: _invite, ...rest } = prev;
+                  return rest;
+                },
+              })
+            }
           />
         ) : playersQuery.isLoading ? (
           <p className="py-12 text-center text-sm text-muted-foreground">Carregando jogadores...</p>

@@ -13,13 +13,21 @@ type Props = {
   onChanged: () => Promise<void>;
   initialDialogo?: Dialogo;
   onCloseDialogo?: () => void;
+  invite?: string;
+  onInviteConsumed?: () => void;
 };
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Ocorreu um erro inesperado.";
 }
 
-export function SectionHubSemSecao({ onChanged, initialDialogo, onCloseDialogo }: Props) {
+export function SectionHubSemSecao({
+  onChanged,
+  initialDialogo,
+  onCloseDialogo,
+  invite,
+  onInviteConsumed,
+}: Props) {
   const [dialogo, setDialogo] = useState<Dialogo>(initialDialogo);
   const [name, setName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
@@ -27,12 +35,12 @@ export function SectionHubSemSecao({ onChanged, initialDialogo, onCloseDialogo }
 
   // Pré-preenche o código de convite vindo da URL (?invite=...)
   useEffect(() => {
-    const invite = new URLSearchParams(window.location.search).get("invite");
-    if (invite) {
-      setInviteCode(invite.toUpperCase());
+    const pendingInvite = invite ?? window.sessionStorage.getItem("pending-invite");
+    if (pendingInvite) {
+      setInviteCode(pendingInvite.toUpperCase());
       setDialogo("entrar-secao");
     }
-  }, []);
+  }, [invite]);
 
   function openDialogo(d: Dialogo) {
     setDialogo(d);
@@ -149,7 +157,8 @@ export function SectionHubSemSecao({ onChanged, initialDialogo, onCloseDialogo }
               onClick={() =>
                 void runAction(async () => {
                   await joinSection(inviteCode);
-                  window.history.replaceState({}, "", window.location.pathname);
+                  window.sessionStorage.removeItem("pending-invite");
+                  onInviteConsumed?.();
                 }, "Você entrou na seção!")
               }
             >
@@ -165,6 +174,9 @@ export function SectionHubSemSecao({ onChanged, initialDialogo, onCloseDialogo }
             value={inviteCode}
             onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
             maxLength={32}
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
             autoFocus
             placeholder="Ex.: A1B2C3D4"
           />

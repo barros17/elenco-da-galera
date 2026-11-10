@@ -8,6 +8,13 @@ export type PersistedDraw<TLayout> = {
   layout: TLayout;
 };
 
+export function shouldPersistDraw<TLayout>(
+  draw: PersistedDraw<TLayout> | null,
+  signature: string,
+): draw is PersistedDraw<TLayout> {
+  return draw !== null && draw.signature === signature;
+}
+
 export function confirmedSignature(players: Pick<Player, "id">[]): string {
   return players
     .map((player) => player.id)
@@ -40,7 +47,7 @@ export function loadDraw<TLayout>(
     const raw = storage?.getItem(drawStorageKey(eventId));
     if (!raw) return null;
     const draw = JSON.parse(raw) as PersistedDraw<TLayout>;
-    return draw.signature === signature ? draw : null;
+    return shouldPersistDraw(draw, signature) ? draw : null;
   } catch {
     return null;
   }
