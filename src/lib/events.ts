@@ -9,6 +9,13 @@ export type AttendanceRow = {
 
 export type GameModality = "futsal" | "fut7" | "campo11" | "custom";
 
+export const MODALITY_LABELS: Record<GameModality, string> = {
+  futsal: "Futsal",
+  fut7: "Fut7",
+  campo11: "Futebol de campo",
+  custom: "Estilo personalizado",
+};
+
 export type EventFormationSnapshot = {
   players_per_team: number;
   has_goalkeeper: boolean;

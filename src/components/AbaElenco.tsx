@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MoreHorizontal, Plus, Search, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,13 @@ export function AbaElenco({
   const editingPlayer = editingId ? (players.find((p) => p.id === editingId) ?? null) : null;
   const isNewPlayer = search.dialogo === "novo-jogador";
 
+  useEffect(() => {
+    if (search.dialogo === "editar-jogador" && editingId && !editingPlayer) {
+      toast.error("Jogador não encontrado ou sem permissão.");
+      onCloseDialog();
+    }
+  }, [editingId, editingPlayer, onCloseDialog, search.dialogo]);
+
   function openDialog(dialogo: "novo-jogador" | "editar-jogador", id?: string) {
     onNavigate({ dialogo, ...(id ? { id } : {}) });
   }
@@ -74,6 +81,9 @@ export function AbaElenco({
   }
 
   async function handleSubmit(input: PlayerInput): Promise<Player> {
+    if (editingId && !editingPlayer) {
+      throw new Error("Jogador não encontrado ou sem permissão.");
+    }
     const targetId = editingId ?? (ownPlayer && !isNewPlayer ? ownPlayer.id : null);
     const saved = await onSubmitPlayer(targetId, input);
     return saved;
@@ -253,7 +263,7 @@ export function AbaElenco({
 
       {/* ── Pop-up de jogador ─────────────────────────────────────────────── */}
       <PlayerFormDialog
-        open={dialogoAberto}
+        open={dialogoAberto && (isNewPlayer || !!editingPlayer)}
         onOpenChange={(open) => !open && closeDialog()}
         editing={isNewPlayer ? null : editingPlayer}
         isNew={isNewPlayer}

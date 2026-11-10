@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FootballPitch } from "@/components/FootballPitch";
 import { PlayerPhoto } from "@/components/PlayerPhoto";
-import type { FootballEvent } from "@/lib/events";
+import { MODALITY_LABELS, type FootballEvent } from "@/lib/events";
 import type { Player } from "@/lib/players";
 import { buildFormation } from "@/lib/team-formations";
 import { missingConfirmedPlayers } from "@/lib/game-style-utils";
@@ -59,8 +59,9 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
           attackers: event.formation.attackers,
         }),
         teamSize: event.formation.players_per_team,
-        label: event.modality === "custom" ? "Estilo personalizado" : event.modality,
-        format: `${event.formation.defenders}-${event.formation.midfielders}-${event.formation.attackers}`,
+        label:
+          event.modality === "custom" ? MODALITY_LABELS.custom : MODALITY_LABELS[event.modality],
+        format: `${event.formation.has_goalkeeper ? "1-" : ""}${event.formation.defenders}-${event.formation.midfielders}-${event.formation.attackers}`,
       }
     : null;
   const signature = confirmedSignature(confirmedPlayers);
@@ -369,7 +370,8 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
           <div ref={boardRef} className="space-y-5 rounded-2xl bg-background p-4">
             <div className="grid gap-8 xl:grid-cols-2">
               {currentTeams.map((team, teamIndex) => {
-                const color = TEAM_COLORS[team.name] ?? DEFAULT_COLOR;
+                const originalName = result.teams[teamIndex]?.name ?? team.name;
+                const color = TEAM_COLORS[originalName] ?? DEFAULT_COLOR;
                 return (
                   <section
                     key={teamIndex}

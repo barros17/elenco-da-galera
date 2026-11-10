@@ -60,6 +60,7 @@ import {
   type FootballEvent,
   type GameModality,
   type NewFootballEvent,
+  MODALITY_LABELS,
 } from "@/lib/events";
 import { clearDraft, loadDraft, saveDraft } from "@/lib/draft-storage";
 import type { AppSearch } from "@/routes/index";
@@ -883,7 +884,7 @@ function EventCard({
   const modalityLabel =
     event.modality === "custom"
       ? (gameStyles.find((s) => s.id === event.game_style_id)?.name ?? "Estilo personalizado")
-      : ({ futsal: "Futsal", fut7: "Fut7", campo11: "Campo 11" }[event.modality] ?? event.modality);
+      : MODALITY_LABELS[event.modality];
 
   return (
     <div
