@@ -12,6 +12,7 @@ type Props = {
   onSlotClick: (teamIndex: number, slotIndex: number) => void;
   onSlotDragStart: (teamIndex: number, slotIndex: number) => void;
   onSlotDrop: (teamIndex: number, slotIndex: number) => void;
+  onDragEnd?: () => void;
 };
 
 export function FootballPitch({
@@ -23,6 +24,7 @@ export function FootballPitch({
   onSlotClick,
   onSlotDragStart,
   onSlotDrop,
+  onDragEnd,
 }: Props) {
   return (
     <div className="space-y-3">
@@ -47,7 +49,12 @@ export function FootballPitch({
               type="button"
               draggable={Boolean(player)}
               onClick={() => onSlotClick(teamIndex, slotIndex)}
-              onDragStart={() => onSlotDragStart(teamIndex, slotIndex)}
+              onDragStart={(event) => {
+                event.dataTransfer.setData("text/plain", `${teamIndex}:${slotIndex}`);
+                event.dataTransfer.effectAllowed = "move";
+                onSlotDragStart(teamIndex, slotIndex);
+              }}
+              onDragEnd={onDragEnd}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
                 event.preventDefault();
@@ -66,7 +73,10 @@ export function FootballPitch({
                     ? "border-white/60 bg-black/80 hover:border-primary"
                     : "border-dashed border-white/75 bg-black/35 hover:bg-black/60"
               }`}
-              style={{ left: `${Math.min(88, Math.max(12, slot.x))}%`, top: `${slot.y}%` }}
+              style={{
+                left: `${Math.min(88, Math.max(12, slot.x))}%`,
+                top: `${Math.min(92, Math.max(8, slot.y))}%`,
+              }}
             >
               {player ? (
                 <>

@@ -213,6 +213,7 @@ function Index() {
 
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [signInLoading, setSignInLoading] = useState(false);
   const queryClient = useQueryClient();
   const previousUserId = useRef<string | null>(null);
 
@@ -430,6 +431,8 @@ function Index() {
   // ─── Auth actions ────────────────────────────────────────────────────────────
 
   async function handleGoogleSignIn() {
+    if (signInLoading) return;
+    setSignInLoading(true);
     const invite = search.invite;
     if (invite) window.sessionStorage.setItem("pending-invite", invite);
     const redirectUrl = new URL(window.location.href);
@@ -442,6 +445,7 @@ function Index() {
       console.error("Google sign-in failed:", error);
       toast.error("Não foi possível iniciar o login com Google.");
     }
+    setSignInLoading(false);
   }
 
   async function handleSignOut() {
@@ -564,7 +568,7 @@ function Index() {
         {authLoading ? (
           <LoadingState />
         ) : !session ? (
-          <LoginScreen onSignIn={handleGoogleSignIn} />
+          <LoginScreen onSignIn={handleGoogleSignIn} loading={signInLoading} />
         ) : sectionQuery.isLoading ? (
           <p className="py-12 text-center text-sm text-muted-foreground">Carregando seção...</p>
         ) : sectionQuery.isError ? (
@@ -767,7 +771,7 @@ function LoadingState() {
   );
 }
 
-function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
+function LoginScreen({ onSignIn, loading }: { onSignIn: () => void; loading: boolean }) {
   return (
     <section className="mx-auto max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-lg">
       <img
@@ -786,9 +790,10 @@ function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
       <button
         type="button"
         onClick={onSignIn}
+        disabled={loading}
         className="mt-6 w-full rounded-xl bg-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-wide text-primary-foreground transition-opacity hover:opacity-90"
       >
-        Continuar com Google
+        {loading ? "Abrindo login..." : "Continuar com Google"}
       </button>
     </section>
   );

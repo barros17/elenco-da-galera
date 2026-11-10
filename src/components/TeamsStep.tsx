@@ -249,9 +249,22 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
     if (!boardRef.current) return;
     setDownloading(true);
     try {
+      setSelected(null);
+      await document.fonts.ready;
       const url = await toPng(boardRef.current, { pixelRatio: 2, backgroundColor: "#141414" });
+      const safeTitle = (event?.title ?? "times")
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-|-$/g, "");
+      const filename = `elenco-da-galera-${safeTitle || "times"}.png`;
+      const blob = await (await fetch(url)).blob();
+      const file = new File([blob], filename, { type: "image/png" });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: event?.title ?? "Times" });
+        toast.success("Imagem dos times pronta para compartilhar!");
+        return;
+      }
       const link = document.createElement("a");
-      link.download = "elenco-da-galera-times.png";
+      link.download = filename;
       link.href = url;
       link.click();
       toast.success("Imagem dos times baixada!");
@@ -423,6 +436,7 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
                         setSelected({ type: "field", teamIndex: sourceTeam, slotIndex })
                       }
                       onSlotDrop={moveSelectedToSlot}
+                      onDragEnd={() => setSelected(null)}
                     />
                   </section>
                 );
@@ -462,7 +476,12 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
                       type="button"
                       draggable
                       onClick={() => handleReserveClick(reserveIndex)}
-                      onDragStart={() => setSelected({ type: "reserve", reserveIndex })}
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData("text/plain", `reserve:${reserveIndex}`);
+                        event.dataTransfer.effectAllowed = "move";
+                        setSelected({ type: "reserve", reserveIndex });
+                      }}
+                      onDragEnd={() => setSelected(null)}
                       aria-pressed={
                         selected?.type === "reserve" && selected.reserveIndex === reserveIndex
                       }
