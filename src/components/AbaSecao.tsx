@@ -46,6 +46,7 @@ type Props = {
   search: AppSearch;
   onChanged: () => Promise<void>;
   onNavigate: (params: Partial<AppSearch>) => void;
+  onCloseDialog: () => void;
 };
 
 type PendingAction =
@@ -55,7 +56,7 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Ocorreu um erro inesperado.";
 }
 
-export function AbaSecao({ section, search, onChanged, onNavigate }: Props) {
+export function AbaSecao({ section, search, onChanged, onNavigate, onCloseDialog }: Props) {
   const [busy, setBusy] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [confirmName, setConfirmName] = useState("");
@@ -262,6 +263,7 @@ export function AbaSecao({ section, search, onChanged, onNavigate }: Props) {
             isAdmin={section.is_admin}
             search={search}
             onNavigate={onNavigate}
+            onCloseDialog={onCloseDialog}
           />
         </div>
       )}

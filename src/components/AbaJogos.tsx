@@ -91,6 +91,7 @@ type Props = {
   onDeleteEvent: (eventId: string) => Promise<void>;
   onSetAttendance: (eventId: string, playerId: string, status: AttendanceStatus) => Promise<void>;
   onNavigate: (params: Partial<AppSearch>) => void;
+  onCloseDialog: () => void;
   draftKey?: string;
 };
 
@@ -142,6 +143,7 @@ export function AbaJogos({
   onDeleteEvent,
   onSetAttendance,
   onNavigate,
+  onCloseDialog,
   draftKey,
 }: Props) {
   // ─── Visão: lista ou detalhe ──────────────────────────────────────────────
@@ -279,7 +281,7 @@ export function AbaJogos({
   }
 
   function closeJogoDialog() {
-    onNavigate({});
+    onCloseDialog();
   }
 
   // ─── Form validation & submit ─────────────────────────────────────────────
@@ -435,10 +437,13 @@ export function AbaJogos({
   const pendingCount = attendance.filter((row) => row.status === "PENDING").length;
 
   // ─── Lista de jogos ───────────────────────────────────────────────────────
+  const now = Date.now();
   const scheduledEvents = events.filter((e) => e.status === "scheduled");
-  const pastOrCanceledEvents = events.filter((e) => e.status === "canceled");
-  const nextEvent = scheduledEvents[0] ?? null;
-  const otherScheduled = scheduledEvents.slice(1);
+  const upcomingEvents = scheduledEvents.filter((e) => new Date(e.ends_at).getTime() >= now);
+  const pastEvents = scheduledEvents.filter((e) => new Date(e.ends_at).getTime() < now);
+  const canceledEvents = events.filter((e) => e.status === "canceled");
+  const nextEvent = upcomingEvents[0] ?? null;
+  const otherScheduled = upcomingEvents.slice(1);
 
   // ─── Render: visão lista ──────────────────────────────────────────────────
   if (!selectedEvent) {
@@ -481,12 +486,8 @@ export function AbaJogos({
               <EventCard
                 event={nextEvent}
                 gameStyles={gameStyles}
-                ownPlayer={ownPlayer}
-                ownAttendance={ownAttendance}
-                confirmedCount={confirmedCount}
                 busy={busy}
                 onOpen={() => onSelectEvent(nextEvent.id)}
-                onAttendance={(status) => void updateAttendance(ownPlayer!.id, status)}
                 highlighted
               />
             )}
@@ -499,26 +500,22 @@ export function AbaJogos({
                     key={event.id}
                     event={event}
                     gameStyles={gameStyles}
-                    ownPlayer={ownPlayer}
-                    ownAttendance={ownAttendance}
-                    confirmedCount={confirmedCount}
                     busy={busy}
                     onOpen={() => onSelectEvent(event.id)}
-                    onAttendance={(status) => void updateAttendance(ownPlayer!.id, status)}
                   />
                 ))}
               </div>
             )}
 
-            {/* Passados e cancelados */}
-            {pastOrCanceledEvents.length > 0 && (
+            {/* Jogos anteriores */}
+            {pastEvents.length > 0 && (
               <Collapsible open={pastOpen} onOpenChange={setPastOpen}>
                 <CollapsibleTrigger asChild>
                   <button
                     type="button"
                     className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    <span>Cancelados ({pastOrCanceledEvents.length})</span>
+                    <span>Anteriores ({pastEvents.length})</span>
                     {pastOpen ? (
                       <ChevronUp className="h-4 w-4" />
                     ) : (
@@ -528,17 +525,44 @@ export function AbaJogos({
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="mt-2 space-y-2">
-                    {pastOrCanceledEvents.map((event) => (
+                    {pastEvents.map((event) => (
                       <EventCard
                         key={event.id}
                         event={event}
                         gameStyles={gameStyles}
-                        ownPlayer={ownPlayer}
-                        ownAttendance={ownAttendance}
-                        confirmedCount={confirmedCount}
                         busy={busy}
                         onOpen={() => onSelectEvent(event.id)}
-                        onAttendance={(status) => void updateAttendance(ownPlayer!.id, status)}
+                        dimmed
+                      />
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+            {canceledEvents.length > 0 && (
+              <Collapsible open={pastOpen} onOpenChange={setPastOpen}>
+                <CollapsibleTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <span>Cancelados ({canceledEvents.length})</span>
+                    {pastOpen ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 space-y-2">
+                    {canceledEvents.map((event) => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        gameStyles={gameStyles}
+                        busy={busy}
+                        onOpen={() => onSelectEvent(event.id)}
                         dimmed
                       />
                     ))}
@@ -803,23 +827,15 @@ export function AbaJogos({
 function EventCard({
   event,
   gameStyles,
-  ownPlayer,
-  ownAttendance,
-  confirmedCount,
   busy,
   onOpen,
-  onAttendance,
   highlighted,
   dimmed,
 }: {
   event: FootballEvent;
   gameStyles: GameStyle[];
-  ownPlayer: Player | null;
-  ownAttendance: EventAttendance | undefined;
-  confirmedCount: number;
   busy: boolean;
   onOpen: () => void;
-  onAttendance: (status: AttendanceStatus) => void;
   highlighted?: boolean;
   dimmed?: boolean;
 }) {
@@ -827,10 +843,6 @@ function EventCard({
     event.modality === "custom"
       ? (gameStyles.find((s) => s.id === event.game_style_id)?.name ?? "Estilo personalizado")
       : ({ futsal: "Futsal", fut7: "Fut7", campo11: "Campo 11" }[event.modality] ?? event.modality);
-
-  const spotsTotal = event.formation?.players_per_team
-    ? event.formation.players_per_team * 2
-    : null;
 
   return (
     <div
@@ -850,11 +862,6 @@ function EventCard({
             </span>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            {spotsTotal && (
-              <span className="text-xs text-muted-foreground">
-                {confirmedCount}/{spotsTotal} <Users className="inline h-3 w-3" />
-              </span>
-            )}
             {event.status === "canceled" && (
               <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                 Cancelado
@@ -863,36 +870,6 @@ function EventCard({
           </div>
         </div>
       </button>
-
-      {/* Botões Vou/Não vou do próprio jogador no card da lista */}
-      {ownPlayer && event.status === "scheduled" && ownAttendance && (
-        <div className="flex gap-2 border-t border-border px-4 pb-3 pt-2">
-          <Button
-            size="sm"
-            variant={ownAttendance.status === "CONFIRMED" ? "default" : "outline"}
-            disabled={busy}
-            onClick={(e) => {
-              e.stopPropagation();
-              onAttendance("CONFIRMED");
-            }}
-            className="flex-1"
-          >
-            <Check className="mr-1.5 h-3.5 w-3.5" /> Vou
-          </Button>
-          <Button
-            size="sm"
-            variant={ownAttendance.status === "DECLINED" ? "destructive" : "outline"}
-            disabled={busy}
-            onClick={(e) => {
-              e.stopPropagation();
-              onAttendance("DECLINED");
-            }}
-            className="flex-1"
-          >
-            <X className="mr-1.5 h-3.5 w-3.5" /> Não vou
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

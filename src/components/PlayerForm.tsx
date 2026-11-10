@@ -33,6 +33,7 @@ type Props = {
   onDirtyChange?: (dirty: boolean) => void;
   /** Registra a função de submit para que o pai possa acionar o save via botão externo. */
   onRegisterSubmit?: (fn: () => Promise<void>) => void;
+  hideActions?: boolean;
 };
 
 export function PlayerForm({
@@ -44,6 +45,7 @@ export function PlayerForm({
   draftKey,
   onDirtyChange,
   onRegisterSubmit,
+  hideActions = false,
 }: Props) {
   const [name, setName] = useState("");
   const [position, setPosition] = useState<Position>("MEI");
@@ -63,14 +65,6 @@ export function PlayerForm({
       onDirtyChange?.(true);
     }
   }
-
-  // Ref para o save estável — evita loop de useEffect
-  const handleSaveRef = useRef<() => Promise<void>>(async () => {});
-
-  // Registra a função de save para uso externo (ex.: botão no footer do ResponsiveDialog)
-  // Usamos um ref para não precisar de useEffect com deps instáveis
-  const registerSubmitRef = useRef(onRegisterSubmit);
-  registerSubmitRef.current = onRegisterSubmit;
 
   useEffect(() => {
     if (editing) {
@@ -166,6 +160,12 @@ export function PlayerForm({
       setSaving(false);
     }
   }
+
+  const saveRef = useRef(handleSave);
+  saveRef.current = handleSave;
+  useEffect(() => {
+    onRegisterSubmit?.(() => saveRef.current());
+  }, [onRegisterSubmit]);
 
   const set = skillSetFor(position);
   const overall = calcOverall(position, skills);
@@ -282,24 +282,26 @@ export function PlayerForm({
           ))}
         </div>
 
-        <div className="flex gap-3">
-          <Button onClick={handleSave} disabled={saving} size="lg" className="flex-1">
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {editing ? "Salvar alterações" : "Salvar jogador"}
-          </Button>
-          {(editing || canCancel) && (
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => {
-                if (draftKey) clearDraft(draftKey);
-                onCancelEdit?.();
-              }}
-            >
-              Cancelar
+        {!hideActions && (
+          <div className="flex gap-3">
+            <Button onClick={handleSave} disabled={saving} size="lg" className="flex-1">
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {editing ? "Salvar alterações" : "Salvar jogador"}
             </Button>
-          )}
-        </div>
+            {(editing || canCancel) && (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => {
+                  if (draftKey) clearDraft(draftKey);
+                  onCancelEdit?.();
+                }}
+              >
+                Cancelar
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="min-w-0 flex flex-col items-center gap-3 lg:sticky lg:top-6 lg:self-start">

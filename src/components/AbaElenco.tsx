@@ -36,6 +36,7 @@ type Props = {
   onDelete: (player: Player) => void;
   onSubmitPlayer: (id: string | null, input: PlayerInput) => Promise<Player>;
   onNavigate: (params: Partial<AppSearch>) => void;
+  onCloseDialog: () => void;
   draftKeyPrefix?: string;
 };
 
@@ -48,6 +49,7 @@ export function AbaElenco({
   onDelete,
   onSubmitPlayer,
   onNavigate,
+  onCloseDialog,
   draftKeyPrefix,
 }: Props) {
   const [query, setQuery] = useState("");
@@ -68,8 +70,7 @@ export function AbaElenco({
   }
 
   function closeDialog() {
-    const params: Partial<AppSearch> = {};
-    onNavigate(params);
+    onCloseDialog();
   }
 
   async function handleSubmit(input: PlayerInput): Promise<Player> {

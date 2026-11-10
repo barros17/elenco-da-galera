@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { PlayerForm } from "@/components/PlayerForm";
@@ -33,6 +33,9 @@ export function PlayerFormDialog({
 
   // Ref para disparar o save do PlayerForm sem prop-drilling complexo
   const submitRef = useRef<(() => Promise<void>) | null>(null);
+  const registerSubmit = useCallback((fn: () => Promise<void>) => {
+    submitRef.current = fn;
+  }, []);
 
   const title = isNew ? "Novo jogador" : editing ? `Editar ${editing.name}` : "Meu jogador";
 
@@ -91,9 +94,8 @@ export function PlayerFormDialog({
         }}
         draftKey={draftKey}
         onDirtyChange={setDirty}
-        onRegisterSubmit={(fn) => {
-          submitRef.current = fn;
-        }}
+        hideActions
+        onRegisterSubmit={registerSubmit}
       />
     </ResponsiveDialog>
   );

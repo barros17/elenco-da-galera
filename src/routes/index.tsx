@@ -48,6 +48,7 @@ import {
   updateEventAttendance,
   updateFootballEvent,
 } from "@/lib/event-queries";
+import { withoutDialog } from "@/lib/navigation";
 
 // ─── Search params ────────────────────────────────────────────────────────────
 
@@ -296,11 +297,16 @@ function Index() {
   );
 
   useEffect(() => {
-    if (!eventsQuery.data) return;
-    if (search.jogo && eventsQuery.data.some((e) => e.id === search.jogo)) return;
-    const next = eventsQuery.data[0]?.id ?? null;
-    if (next !== search.jogo) setSelectedEventId(next);
-  }, [eventsQuery.data, search.jogo, setSelectedEventId]);
+    if (!eventsQuery.data || !search.jogo) return;
+    if (eventsQuery.data.some((event) => event.id === search.jogo)) return;
+    void navigate({
+      replace: true,
+      search: (prev) => {
+        const { jogo: _jogo, ...rest } = prev;
+        return rest;
+      },
+    });
+  }, [eventsQuery.data, navigate, search.jogo]);
 
   const selectedEvent = events.find((e) => e.id === selectedEventId) ?? null;
 
@@ -438,8 +444,19 @@ function Index() {
   // ─── Navegação ───────────────────────────────────────────────────────────────
 
   function goToAba(novaAba: AppSearch["aba"]) {
-    void navigate({ search: (prev) => ({ ...prev, aba: novaAba }) });
+    void navigate({
+      search: (prev) => {
+        const next = withoutDialog(prev);
+        const { jogo: _jogo, visao: _visao, ...rest } = next;
+        return { ...rest, aba: novaAba };
+      },
+    });
   }
+
+  const closeDialog = useCallback(
+    () => void navigate({ search: (prev) => withoutDialog(prev) }),
+    [navigate],
+  );
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
@@ -553,14 +570,7 @@ function Index() {
                 ? search.dialogo
                 : undefined
             }
-            onCloseDialogo={() =>
-              void navigate({
-                search: (prev) => {
-                  const { dialogo: _d, ...rest } = prev;
-                  return rest;
-                },
-              })
-            }
+            onCloseDialogo={() => closeDialog()}
           />
         ) : playersQuery.isLoading ? (
           <p className="py-12 text-center text-sm text-muted-foreground">Carregando jogadores...</p>
@@ -615,6 +625,7 @@ function Index() {
                 onNavigate={(params) =>
                   void navigate({ search: (prev) => ({ ...prev, ...params }) })
                 }
+                onCloseDialog={closeDialog}
                 {...(session.user.id && section
                   ? {
                       draftKey: `draft:v1:${session.user.id}:${section.section_id}:event:${selectedEventId ?? "new"}`,
@@ -635,6 +646,7 @@ function Index() {
                 onNavigate={(params) =>
                   void navigate({ search: (prev) => ({ ...prev, ...params }) })
                 }
+                onCloseDialog={closeDialog}
                 {...(session.user.id && section
                   ? { draftKeyPrefix: `draft:v1:${session.user.id}:${section.section_id}` }
                   : {})}
@@ -649,6 +661,7 @@ function Index() {
                 onNavigate={(params) =>
                   void navigate({ search: (prev) => ({ ...prev, ...params }) })
                 }
+                onCloseDialog={closeDialog}
               />
             )}
           </>

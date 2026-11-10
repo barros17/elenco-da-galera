@@ -34,6 +34,7 @@ type Props = {
   /** Se fornecido, o painel usa a URL para controlar qual pop-up está aberto */
   search?: AppSearch;
   onNavigate?: (params: Partial<AppSearch>) => void;
+  onCloseDialog?: () => void;
 };
 
 type FormState = {
@@ -58,7 +59,7 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Não foi possível salvar o estilo.";
 }
 
-export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate }: Props) {
+export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onCloseDialog }: Props) {
   const query = useGameStyles(sectionId);
   const mutations = useGameStyleMutations(sectionId);
   const scheduledEvents = useQuery({
@@ -113,7 +114,7 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate }: Prop
 
   function closeDialog() {
     if (useUrlControl) {
-      onNavigate?.({});
+      onCloseDialog?.();
     } else {
       setLocalOpen(false);
     }
