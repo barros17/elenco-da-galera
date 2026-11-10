@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isPlayerPhotoStoragePath } from "@/lib/player-photo-utils";
@@ -41,12 +41,11 @@ export function PlayerPhoto({ photoUrl, alt, className, fallback = null, ariaHid
   });
   const src = storedPath ? signedUrlQuery.data : sourcePhotoUrl;
   const [imageFailed, setImageFailed] = useState(false);
-  const [lastFailedSource, setLastFailedSource] = useState<string | null>(null);
+  const failedAttempts = useRef(new Map<string, number>());
 
   useEffect(() => {
     setImageFailed(false);
-    setLastFailedSource(null);
-  }, [src]);
+  }, [photoUrl]);
 
   if (!src || imageFailed) return fallback;
 
@@ -57,8 +56,9 @@ export function PlayerPhoto({ photoUrl, alt, className, fallback = null, ariaHid
       aria-hidden={ariaHidden}
       className={className}
       onError={() => {
-        if (storedPath && !signedUrlQuery.isError && lastFailedSource !== src) {
-          setLastFailedSource(src);
+        const attempts = storedPath ? (failedAttempts.current.get(storedPath) ?? 0) : 1;
+        if (storedPath && !signedUrlQuery.isError && attempts < 1) {
+          failedAttempts.current.set(storedPath, attempts + 1);
           void signedUrlQuery.refetch();
           return;
         }

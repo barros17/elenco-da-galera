@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Move, ZoomIn } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,19 +36,39 @@ export function PhotoCropper({ source, onCancel, onConfirm }: Props) {
   const dragStart = useRef<Point>({ x: 0, y: 0 });
   const offsetStart = useRef<Point>({ x: 0, y: 0 });
   const frameRef = useRef<HTMLDivElement>(null);
+  const onCancelRef = useRef(onCancel);
+  const [frameSize, setFrameSize] = useState(320);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    onCancelRef.current = onCancel;
+  }, [onCancel]);
 
   useEffect(() => {
     if (!source) return;
+    setLoadError(false);
     const next = new Image();
     next.onload = () => {
       setImage(next);
       setZoom(1);
       setOffset({ x: 0, y: 0 });
     };
+    next.onerror = () => {
+      setLoadError(true);
+      toast.error("Formato não suportado, use JPG ou PNG");
+      onCancelRef.current();
+    };
     next.src = source.url;
   }, [source]);
 
-  const frameSize = frameRef.current?.clientWidth ?? 320;
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const observer = new ResizeObserver(([entry]) => setFrameSize(entry?.contentRect.width ?? 320));
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [source]);
+
   const naturalScale = image ? Math.max(frameSize / image.width, frameSize / image.height) : 1;
   const renderedWidth = image ? image.width * naturalScale * zoom : frameSize;
   const renderedHeight = image ? image.height * naturalScale * zoom : frameSize;
@@ -57,6 +78,31 @@ export function PhotoCropper({ source, onCancel, onConfirm }: Props) {
     x: Math.max(-maxX, Math.min(maxX, offset.x)),
     y: Math.max(-maxY, Math.min(maxY, offset.y)),
   };
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (!source || !image) return;
+      const step = event.shiftKey ? 12 : 4;
+      const delta =
+        event.key === "ArrowLeft"
+          ? { x: -step, y: 0 }
+          : event.key === "ArrowRight"
+            ? { x: step, y: 0 }
+            : event.key === "ArrowUp"
+              ? { x: 0, y: -step }
+              : event.key === "ArrowDown"
+                ? { x: 0, y: step }
+                : null;
+      if (!delta) return;
+      event.preventDefault();
+      setOffset((current) => ({
+        x: Math.max(-maxX, Math.min(maxX, current.x + delta.x)),
+        y: Math.max(-maxY, Math.min(maxY, current.y + delta.y)),
+      }));
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [source, image, maxX, maxY]);
 
   function moveTo(clientX: number, clientY: number) {
     const next = {
@@ -93,7 +139,7 @@ export function PhotoCropper({ source, onCancel, onConfirm }: Props) {
 
   return (
     <Dialog open={Boolean(source)} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="max-h-[96vh] overflow-y-auto sm:max-w-md">
+      <DialogContent className="max-h-[96dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl uppercase">Ajustar foto</DialogTitle>
           <DialogDescription>Arraste para posicionar o rosto dentro da carta.</DialogDescription>
@@ -112,7 +158,7 @@ export function PhotoCropper({ source, onCancel, onConfirm }: Props) {
           onPointerUp={() => setDragging(false)}
           onPointerCancel={() => setDragging(false)}
         >
-          {image && (
+          {image && !loadError && (
             <img
               src={source?.url}
               alt="Foto sendo ajustada"

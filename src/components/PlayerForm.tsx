@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -110,6 +110,10 @@ export function PlayerForm({
       toast.error("Escolha um arquivo de imagem.");
       return;
     }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A foto deve ter no máximo 5 MB.");
+      return;
+    }
     setCropSource({ file, url: URL.createObjectURL(file) });
   }
 
@@ -218,7 +222,7 @@ export function PlayerForm({
           </div>
           {photo && (
             <p className="text-xs text-muted-foreground">
-              Toque em “Escolher foto” para ajustar novamente.
+              Para trocar ou ajustar a foto, escolha um novo arquivo.
             </p>
           )}
         </div>
@@ -233,7 +237,7 @@ export function PlayerForm({
                 onClick={() => changePosition(p)}
                 title={POSITION_LABELS[p]}
                 className={cn(
-                  "rounded-lg border px-2 py-2 font-display text-sm font-bold uppercase transition-all",
+                  "min-h-11 rounded-lg border px-2 py-2 font-display text-sm font-bold uppercase transition-all md:min-h-0",
                   position === p
                     ? "border-primary bg-primary text-primary-foreground shadow-glow-gold"
                     : "border-border bg-secondary text-foreground hover:border-primary/60",

@@ -39,6 +39,7 @@ import {
   removeSectionMember,
   type Section,
 } from "@/lib/sections";
+import { MAX_SECTION_MEMBERS } from "@/lib/sections";
 import type { AppSearch } from "@/routes/index";
 
 type Props = {
@@ -145,6 +146,7 @@ export function AbaSecao({ section, search, onChanged, onNavigate, onCloseDialog
 
   return (
     <section className="mx-auto max-w-2xl space-y-6 animate-rise">
+      <h1 className="sr-only">Seção</h1>
       {/* ── Resumo ─────────────────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center gap-2">
@@ -152,7 +154,8 @@ export function AbaSecao({ section, search, onChanged, onNavigate, onCloseDialog
           <h2 className="font-display text-xl font-bold text-foreground">{section.name}</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          {section.is_admin ? "Administrador" : "Participante"} · {section.member_count}/24
+          {section.is_admin ? "Administrador" : "Participante"} · {section.member_count}/
+          {MAX_SECTION_MEMBERS}
           participantes
         </p>
       </div>
@@ -215,7 +218,7 @@ export function AbaSecao({ section, search, onChanged, onNavigate, onCloseDialog
                   <span className="min-w-0 truncate">
                     {name}
                     {member.is_admin && (
-                      <span className="ml-2 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                      <span className="ml-2 rounded-full bg-primary/15 px-1.5 py-0.5 text-xs font-bold text-primary">
                         Admin
                       </span>
                     )}
@@ -226,7 +229,7 @@ export function AbaSecao({ section, search, onChanged, onNavigate, onCloseDialog
                         <button
                           type="button"
                           aria-label={`Opções para ${name}`}
-                          className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:min-h-0 md:min-w-0"
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </button>

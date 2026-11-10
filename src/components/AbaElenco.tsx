@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MoreHorizontal, Plus, Search, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,6 @@ type Props = {
   players: Player[];
   currentUserId: string;
   isAdmin: boolean;
-  sectionId: string;
   search: AppSearch;
   onDelete: (player: Player) => void;
   onSubmitPlayer: (id: string | null, input: PlayerInput) => Promise<Player>;
@@ -44,7 +43,6 @@ export function AbaElenco({
   players,
   currentUserId,
   isAdmin,
-  sectionId,
   search,
   onDelete,
   onSubmitPlayer,
@@ -55,7 +53,6 @@ export function AbaElenco({
   const [query, setQuery] = useState("");
   const [posFilter, setPosFilter] = useState<string>("Todos");
   const [pendingDelete, setPendingDelete] = useState<Player | null>(null);
-  const savedCardRef = useRef<HTMLDivElement | null>(null);
 
   const ownPlayer = players.find((p) => p.user_id === currentUserId) ?? null;
 
@@ -107,6 +104,7 @@ export function AbaElenco({
 
   return (
     <section className="space-y-6 animate-rise">
+      <h1 className="sr-only">Elenco</h1>
       {/* ── Seu card ─────────────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-border bg-card p-4">
         <h2 className="mb-3 font-display text-base font-bold uppercase tracking-wide text-foreground">
@@ -166,8 +164,8 @@ export function AbaElenco({
               aria-pressed={posFilter === pos}
               className={
                 posFilter === pos
-                  ? "rounded-full border border-primary bg-primary px-3 py-1 text-xs font-bold text-primary-foreground"
-                  : "rounded-full border border-border bg-card px-3 py-1 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                  ? "min-h-11 rounded-full border border-primary bg-primary px-3 py-1 text-xs font-bold text-primary-foreground md:min-h-0"
+                  : "min-h-11 rounded-full border border-border bg-card px-3 py-1 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-foreground md:min-h-0"
               }
             >
               {pos}
@@ -214,7 +212,6 @@ export function AbaElenco({
               <div
                 key={player.id}
                 id={`player-card-${player.id}`}
-                ref={player.id === ownPlayer?.id ? savedCardRef : undefined}
                 className="animate-rise space-y-1.5"
               >
                 <PlayerCard
@@ -232,7 +229,7 @@ export function AbaElenco({
                         <button
                           type="button"
                           aria-label={`Opções para ${player.name}`}
-                          className="flex h-8 items-center gap-1 rounded-md border border-border px-2 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+                          className="flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-md border border-border px-2 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground md:min-h-0 md:min-w-0"
                         >
                           <MoreHorizontal className="h-3.5 w-3.5" />
                         </button>
@@ -270,7 +267,6 @@ export function AbaElenco({
         editing={isNewPlayer ? null : editingPlayer}
         isNew={isNewPlayer}
         isAdmin={isAdmin}
-        sectionId={sectionId}
         onSubmit={handleSubmit}
         onDone={handleDone}
         {...(draftKeyPrefix

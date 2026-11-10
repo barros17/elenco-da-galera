@@ -296,7 +296,7 @@ function Index() {
     (id: string | null) => {
       void navigate({
         search: (prev) => {
-          const { jogo: _j, ...rest } = prev;
+          const { jogo: _j, visao: _visao, dialogo: _dialogo, id: _id, ...rest } = prev;
           return id ? { ...rest, jogo: id } : rest;
         },
       });
@@ -355,29 +355,6 @@ function Index() {
       toast.error(error instanceof Error ? error.message : "Não foi possível excluir o jogador.");
     },
   });
-
-  async function handleSubmitPlayer(
-    input: PlayerInput,
-    isAdmin: boolean,
-    isNew: boolean,
-  ): Promise<Player> {
-    if (!section) throw new Error("Entre ou crie uma seção antes de cadastrar seu jogador.");
-    const ownPlayer = players.find((p) => p.user_id === session?.user.id) ?? null;
-    // Se admin e isNew, não vincula ao próprio usuário
-    const editingPlayer = isNew ? null : ownPlayer;
-    const saved = editingPlayer
-      ? await updatePlayer(editingPlayer.id, input, section.section_id)
-      : await createPlayer(input, section.section_id, {
-          linkToSelf: !(isAdmin && isNew),
-        });
-    if (editingPlayer?.photo_url && editingPlayer.photo_url === saved.photo_url) {
-      await queryClient.invalidateQueries({
-        queryKey: ["player-photo-signed-url", editingPlayer.photo_url],
-      });
-    }
-    await refreshSectionData();
-    return saved;
-  }
 
   async function handleSubmitPlayerById(id: string | null, input: PlayerInput): Promise<Player> {
     if (!section) throw new Error("Entre ou crie uma seção antes de cadastrar seu jogador.");
@@ -477,11 +454,12 @@ function Index() {
 
   const hasSection = !!section;
   const isAdmin = section?.is_admin ?? false;
-  const ownPlayer = players.find((p) => p.user_id === session?.user.id) ?? null;
-
   return (
     <div className="min-h-dvh">
-      <Toaster position="bottom-center" className="pb-[env(safe-area-inset-bottom)]" />
+      <Toaster
+        position="bottom-center"
+        offset={{ bottom: "calc(4rem + env(safe-area-inset-bottom))" }}
+      />
 
       {/* ── Cabeçalho fixo ────────────────────────────────────────────────────── */}
       <header
@@ -529,7 +507,7 @@ function Index() {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-card transition-colors hover:border-primary/50"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-card transition-colors hover:border-primary/50 md:h-8 md:w-8"
                   aria-label="Menu da conta"
                 >
                   <User className="h-4 w-4 text-muted-foreground" />
@@ -663,7 +641,6 @@ function Index() {
                 players={players}
                 currentUserId={session.user.id}
                 isAdmin={isAdmin}
-                sectionId={section.section_id}
                 search={search}
                 onDelete={(p) => removeMutation.mutate(p.id)}
                 onSubmitPlayer={handleSubmitPlayerById}
@@ -712,7 +689,7 @@ function Index() {
                     aria-current={active ? "page" : undefined}
                     onClick={() => goToAba(a.id)}
                     className={cn(
-                      "flex min-h-[3rem] flex-1 flex-col items-center justify-center gap-0.5 px-2 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors",
+                      "flex min-h-[3rem] flex-1 flex-col items-center justify-center gap-0.5 px-2 py-2 text-xs font-bold uppercase tracking-wide transition-colors",
                       active ? "text-primary" : "text-muted-foreground hover:text-foreground",
                     )}
                   >
@@ -727,7 +704,7 @@ function Index() {
           {/* Desktop: abas acima do conteúdo (sticky abaixo do header) */}
           <nav
             aria-label="Navegação principal"
-            className="sticky top-[calc(env(safe-area-inset-top)+2.75rem)] z-20 hidden border-b border-border/60 bg-background/90 backdrop-blur md:block"
+            className="sticky top-[calc(env(safe-area-inset-top)+var(--app-header-height))] z-20 hidden border-b border-border/60 bg-background/90 backdrop-blur md:block"
           >
             <div className="mx-auto flex max-w-6xl gap-1 px-4 py-2">
               {ABAS.map((a) => {

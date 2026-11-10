@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -79,6 +79,8 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
   const [form, setForm] = useState<FormState>(empty);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<GameStyle | null>(null);
+  const initialFormRef = useRef<FormState>(empty);
+  const lastHydratedKey = useRef<string | null>(null);
 
   // Controle do pop-up: via URL quando onNavigate disponível, senão estado local
   const useUrlControl = !!onNavigate;
@@ -88,6 +90,8 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
 
   useEffect(() => {
     if (!useUrlControl) return;
+    const dialogKey = `${search?.dialogo ?? ""}:${urlEditingId ?? ""}`;
+    if (lastHydratedKey.current === dialogKey) return;
     if (urlEditingId) {
       const style = query.data?.find((item) => item.id === urlEditingId);
       if (style) {
@@ -100,12 +104,27 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
           midfielders: style.midfielders,
           attackers: style.attackers,
         });
+        initialFormRef.current = {
+          name: style.name,
+          players_per_team: style.players_per_team,
+          has_goalkeeper: style.has_goalkeeper,
+          defenders: style.defenders,
+          midfielders: style.midfielders,
+          attackers: style.attackers,
+        };
+        lastHydratedKey.current = dialogKey;
+      } else if (query.data) {
+        onCloseDialog?.();
+        toast.error("Esse estilo não existe mais.");
+        lastHydratedKey.current = dialogKey;
       }
     } else if (search?.dialogo === "novo-estilo") {
       setEditingId(null);
       setForm(empty);
+      initialFormRef.current = empty;
+      lastHydratedKey.current = dialogKey;
     }
-  }, [query.data, search?.dialogo, urlEditingId, useUrlControl]);
+  }, [query.data, search?.dialogo, urlEditingId, useUrlControl, onCloseDialog]);
 
   const dialogoAberto = useUrlControl
     ? search?.dialogo === "novo-estilo" || search?.dialogo === "editar-estilo"
@@ -122,9 +141,18 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
         midfielders: style.midfielders,
         attackers: style.attackers,
       });
+      initialFormRef.current = {
+        name: style.name,
+        players_per_team: style.players_per_team,
+        has_goalkeeper: style.has_goalkeeper,
+        defenders: style.defenders,
+        midfielders: style.midfielders,
+        attackers: style.attackers,
+      };
     } else {
       setEditingId(null);
       setForm(empty);
+      initialFormRef.current = empty;
     }
     if (useUrlControl) {
       onNavigate?.({
@@ -144,15 +172,11 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
     }
     setEditingId(null);
     setForm(empty);
+    initialFormRef.current = empty;
+    lastHydratedKey.current = null;
   }
 
-  const isDirty =
-    form.name !== empty.name ||
-    form.players_per_team !== empty.players_per_team ||
-    form.has_goalkeeper !== empty.has_goalkeeper ||
-    form.defenders !== empty.defenders ||
-    form.midfielders !== empty.midfielders ||
-    form.attackers !== empty.attackers;
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialFormRef.current);
 
   async function save() {
     const values = [form.players_per_team, form.defenders, form.midfielders, form.attackers];
@@ -249,7 +273,7 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
                     <button
                       type="button"
                       aria-label={`Opções para ${style.name}`}
-                      className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:min-h-0 md:min-w-0"
                     >
                       <MoreHorizontal className="h-4 w-4" />
                     </button>

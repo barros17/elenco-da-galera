@@ -42,7 +42,7 @@ export function PlayerCard({
     size === "sm" ? "text-[2rem]" : size === "lg" ? "text-[3.65rem]" : "text-[2.85rem]";
   const nameText = size === "sm" ? "text-[0.78rem]" : size === "lg" ? "text-xl" : "text-base";
   const skillText =
-    size === "sm" ? "text-[0.58rem]" : size === "lg" ? "text-[0.72rem]" : "text-[0.65rem]";
+    size === "sm" ? "text-[0.68rem]" : size === "lg" ? "text-[0.78rem]" : "text-[0.72rem]";
   const sideInset = size === "sm" ? "inset-x-[11%]" : "inset-x-[12%]";
 
   return (
@@ -108,11 +108,11 @@ export function PlayerCard({
           <div
             className={cn(
               "flex items-center justify-center gap-1 font-bold uppercase opacity-80",
-              size === "sm" ? "text-[0.48rem]" : "text-[0.58rem]",
+              size === "sm" ? "text-[0.68rem]" : "text-[0.68rem]",
             )}
           >
             <span>Perna ruim</span>
-            <span className="flex" aria-label={`${weakFoot} de 5`}>
+            <span role="img" className="flex" aria-label={`${weakFoot} de 5`}>
               {Array.from({ length: 5 }, (_, index) => (
                 <Star
                   key={index}

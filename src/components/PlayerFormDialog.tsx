@@ -11,7 +11,6 @@ type Props = {
   editing: Player | null;
   isNew: boolean;
   isAdmin: boolean;
-  sectionId: string;
   onSubmit: (input: PlayerInput) => Promise<Player>;
   onDone: (saved: Player) => void;
   draftKey?: string;
@@ -23,7 +22,6 @@ export function PlayerFormDialog({
   editing,
   isNew,
   isAdmin,
-  sectionId: _sectionId,
   onSubmit,
   onDone,
   draftKey,

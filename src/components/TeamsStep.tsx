@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dices, Download, Shuffle, Users } from "lucide-react";
+import { flushSync } from "react-dom";
 import { toPng } from "html-to-image";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,6 @@ import {
   generateTeams,
   teamAvg,
   teamSum,
-  type DrawResult,
 } from "@/lib/team-balancer";
 import { createInitialLineup, movePlayerToReserves, movePlayerToSlot } from "@/lib/team-formations";
 import {
@@ -107,7 +107,7 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
 
   function draw(withCurrent = false) {
     if (!event || !formation) {
-      toast.error("Selecione um jogo na etapa Presença antes de gerar os times.");
+      toast.error("Selecione um jogo na aba Jogos › Presença antes de gerar os times.");
       return;
     }
     if (event.status === "canceled") {
@@ -119,7 +119,7 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
       return;
     }
     if (attendanceError) {
-      toast.error("Não foi possível carregar as presenças. Atualize a etapa Presença.");
+      toast.error("Não foi possível carregar as presenças. Atualize a aba Jogos › Presença.");
       return;
     }
     const effectiveTeamSize = withCurrent
@@ -190,6 +190,17 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
     setSelected(null);
   }
 
+  function hasManualLayoutChanges(): boolean {
+    if (!result || !layout) return false;
+    const generatedIds = result.teams.flatMap((team) => team.players.map((player) => player.id));
+    const currentIds = layout.teams
+      .flat()
+      .filter((player): player is Player => player !== null)
+      .map((player) => player.id)
+      .concat(layout.reserves.map((player) => player.id));
+    return generatedIds.join(",") !== currentIds.join(",");
+  }
+
   function handleSlotClick(teamIndex: number, slotIndex: number) {
     if (!layout) return;
     if (!selected) {
@@ -249,7 +260,10 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
     if (!boardRef.current) return;
     setDownloading(true);
     try {
-      setSelected(null);
+      flushSync(() => setSelected(null));
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      );
       await document.fonts.ready;
       const url = await toPng(boardRef.current, { pixelRatio: 2, backgroundColor: "#141414" });
       const safeTitle = (event?.title ?? "times")
@@ -259,9 +273,13 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
       const blob = await (await fetch(url)).blob();
       const file = new File([blob], filename, { type: "image/png" });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: event?.title ?? "Times" });
-        toast.success("Imagem dos times pronta para compartilhar!");
-        return;
+        try {
+          await navigator.share({ files: [file], title: event?.title ?? "Times" });
+          toast.success("Imagem dos times pronta para compartilhar!");
+          return;
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") return;
+        }
       }
       const link = document.createElement("a");
       link.download = filename;
@@ -287,11 +305,16 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
 
   return (
     <div className="space-y-8">
-      <div>
-        <p className="mt-1 text-sm text-muted-foreground">
-          O sorteio usa apenas quem confirmou presença. Selecione cards e posições para ajustar a
-          escalação; também é possível arrastar e soltar.
-        </p>
+      <p className="text-sm text-muted-foreground">
+        O sorteio usa apenas quem confirmou presença. Selecione cards e posições para ajustar a
+        escalação; também é possível arrastar e soltar.
+      </p>
+      <div className="sr-only" aria-live="polite">
+        {selected
+          ? selected.type === "field"
+            ? "Jogador selecionado no campo. Escolha outra posição ou uma reserva."
+            : "Reserva selecionada. Escolha uma posição no campo."
+          : "Nenhum jogador selecionado."}
       </div>
       {event?.status === "canceled" && (
         <p className="rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
@@ -301,7 +324,7 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
 
       <div className="flex flex-wrap items-end gap-4 rounded-xl border border-border bg-card p-5">
         <div className="min-w-[12rem]">
-          <div className="flex items-center gap-2 font-semibold text-foreground">
+          <div className="flex items-center gap-2 rounded-md bg-black/40 px-2 py-1 font-semibold text-white">
             <Users className="h-4 w-4 text-primary" />
             {event ? event.title : "Nenhum jogo selecionado"}
           </div>
@@ -309,10 +332,10 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
             {attendanceLoading
               ? "Carregando confirmações..."
               : attendanceError
-                ? "Erro ao carregar as confirmações. Atualize a etapa Presença."
+                ? "Erro ao carregar as confirmações. Atualize a aba Jogos › Presença."
                 : event && formation
                   ? `${formation.label} · ${formation.format} · ${formation.teamSize} por time · ${confirmedPlayers.length} confirmados`
-                  : "Crie ou selecione um jogo na etapa Presença."}
+                  : "Crie ou selecione um jogo na aba Jogos › Presença."}
           </p>
           {event && formation && confirmedPlayers.length < formation.teamSize * 2 && (
             <p className="mt-2 text-sm font-semibold text-primary">
@@ -347,7 +370,18 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
             </>
           ) : (
             /* Após primeiro sorteio */
-            <Button onClick={() => draw()} size="lg" variant="secondary">
+            <Button
+              onClick={() => {
+                if (
+                  hasManualLayoutChanges() &&
+                  !window.confirm("As trocas e reservas manuais serão perdidas. Sortear de novo?")
+                )
+                  return;
+                draw();
+              }}
+              size="lg"
+              variant="secondary"
+            >
               <Shuffle className="mr-2 h-4 w-4" />
               Sortear de novo
             </Button>
@@ -393,7 +427,7 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
                       backgroundImage: `linear-gradient(135deg, ${color.from}, ${color.to})`,
                     }}
                   >
-                    <div className="flex flex-wrap items-center gap-3" style={{ color: color.ink }}>
+                    <div className="flex flex-wrap items-center gap-3 rounded-md bg-black/40 px-2 py-1 text-white">
                       <Input
                         value={names[teamIndex] ?? team.name}
                         onChange={(event) =>
@@ -409,10 +443,10 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
                           )
                         }
                         className="h-auto w-auto max-w-[18rem] min-w-[10rem] border-0 bg-transparent px-0 font-display text-2xl font-bold tracking-wide uppercase shadow-none focus-visible:ring-0"
-                        style={{ color: color.ink }}
+                        style={{ color: "#fff" }}
                         aria-label={`Nome do time ${teamIndex + 1}`}
                       />
-                      <div className="ml-auto flex gap-4 font-display text-xs tracking-widest uppercase">
+                      <div className="ml-auto flex gap-4 font-display text-xs tracking-widest text-white uppercase">
                         <span>
                           Média <strong className="text-base">{teamAvg(team)}</strong>
                         </span>
@@ -437,6 +471,7 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
                       }
                       onSlotDrop={moveSelectedToSlot}
                       onDragEnd={() => setSelected(null)}
+                      showTeamName={false}
                     />
                   </section>
                 );

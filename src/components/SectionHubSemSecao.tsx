@@ -49,6 +49,8 @@ export function SectionHubSemSecao({
   function closeDialogo() {
     setDialogo(undefined);
     setName("");
+    window.sessionStorage.removeItem("pending-invite");
+    onInviteConsumed?.();
     onCloseDialogo?.();
   }
 

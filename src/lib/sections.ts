@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { removeSectionPlayerPhotos } from "@/lib/photo-storage";
 
+export const MAX_SECTION_MEMBERS = 24;
+
 export type Section = {
   section_id: string;
   name: string;

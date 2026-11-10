@@ -18,4 +18,14 @@ Fluxos de regressão prioritários:
 - renomear time sem trocar suas cores, exportar/compartilhar imagem e testar formação 5-3-2 em 320 px;
 - repetir os cenários em iPhone Safari, Android Chrome e Firefox desktop.
 
+Regressões desta rodada:
+
+- abrir “Anteriores” e “Cancelados” separadamente;
+- cancelar a folha de compartilhar sem erro e baixar quando o compartilhamento falhar;
+- editar estilo, deixar a lista refazer e confirmar que o formulário não perde a digitação;
+- cancelar o convite e recarregar;
+- Voltar do detalhe e abrir outro jogo;
+- testar formação 5-3-2 em 320px e arraste no Firefox desktop;
+- testar foto HEIC, foto corrompida, limite de tamanho e setas do teclado no corte.
+
 Em cada tela conferir ausência de rolagem horizontal, campos com texto de 16px no iOS, diálogo com rolagem interna, área segura do notch/barra inferior e restauração após recarregar.

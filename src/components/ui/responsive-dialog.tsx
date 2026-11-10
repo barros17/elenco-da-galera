@@ -123,7 +123,7 @@ export function ResponsiveDialog({
               <button
                 type="button"
                 onClick={handleClose}
-                className="shrink-0 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                className="-mr-2 -mt-2 flex min-h-11 min-w-11 items-center justify-center rounded-sm p-2 opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <X className="h-4 w-4" />
                 <span className="sr-only">Fechar</span>

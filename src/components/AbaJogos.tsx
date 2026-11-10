@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
-  CalendarDays,
   Check,
   ChevronDown,
   ChevronUp,
-  CircleHelp,
   ExternalLink,
   LocateFixed,
   MapPin,
@@ -13,7 +11,6 @@ import {
   Navigation,
   Plus,
   UserRound,
-  Users,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -182,6 +179,7 @@ export function AbaJogos({
   const [pendingAction, setPendingAction] = useState<"cancel" | "delete" | null>(null);
   const [busy, setBusy] = useState(false);
   const [pastOpen, setPastOpen] = useState(false);
+  const [canceledOpen, setCanceledOpen] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
 
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -453,6 +451,7 @@ export function AbaJogos({
   if (!selectedEvent) {
     return (
       <section className="space-y-6 animate-rise">
+        <h1 className="sr-only">Jogos</h1>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-2xl font-bold text-foreground">Jogos</h2>
           {isAdmin && (
@@ -490,7 +489,6 @@ export function AbaJogos({
               <EventCard
                 event={nextEvent}
                 gameStyles={gameStyles}
-                busy={busy}
                 onOpen={() => onSelectEvent(nextEvent.id)}
                 highlighted
               />
@@ -504,7 +502,6 @@ export function AbaJogos({
                     key={event.id}
                     event={event}
                     gameStyles={gameStyles}
-                    busy={busy}
                     onOpen={() => onSelectEvent(event.id)}
                   />
                 ))}
@@ -513,14 +510,14 @@ export function AbaJogos({
 
             {/* Jogos anteriores */}
             {pastEvents.length > 0 && (
-              <Collapsible open={pastOpen} onOpenChange={setPastOpen}>
+              <Collapsible open={canceledOpen} onOpenChange={setCanceledOpen}>
                 <CollapsibleTrigger asChild>
                   <button
                     type="button"
                     className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
                   >
                     <span>Anteriores ({pastEvents.length})</span>
-                    {pastOpen ? (
+                    {canceledOpen ? (
                       <ChevronUp className="h-4 w-4" />
                     ) : (
                       <ChevronDown className="h-4 w-4" />
@@ -534,7 +531,6 @@ export function AbaJogos({
                         key={event.id}
                         event={event}
                         gameStyles={gameStyles}
-                        busy={busy}
                         onOpen={() => onSelectEvent(event.id)}
                         dimmed
                       />
@@ -565,7 +561,6 @@ export function AbaJogos({
                         key={event.id}
                         event={event}
                         gameStyles={gameStyles}
-                        busy={busy}
                         onOpen={() => onSelectEvent(event.id)}
                         dimmed
                       />
@@ -634,7 +629,6 @@ export function AbaJogos({
           onUseMyLocation={useMyLocation}
           onClearLocation={clearLocation}
           onSave={() => void saveEvent()}
-          onCancel={closeJogoDialog}
         />
       </section>
     );
@@ -757,7 +751,6 @@ export function AbaJogos({
           declinedCount={declinedCount}
           pendingCount={pendingCount}
           busy={busy}
-          gameStyles={gameStyles}
           onUpdateAttendance={updateAttendance}
         />
       )}
@@ -829,7 +822,6 @@ export function AbaJogos({
         onUseMyLocation={useMyLocation}
         onClearLocation={clearLocation}
         onSave={() => void saveEvent()}
-        onCancel={closeJogoDialog}
       />
 
       {/* AlertDialog para cancelar/excluir jogo */}
@@ -872,14 +864,12 @@ export function AbaJogos({
 function EventCard({
   event,
   gameStyles,
-  busy,
   onOpen,
   highlighted,
   dimmed,
 }: {
   event: FootballEvent;
   gameStyles: GameStyle[];
-  busy: boolean;
   onOpen: () => void;
   highlighted?: boolean;
   dimmed?: boolean;
@@ -936,7 +926,6 @@ function VisaoPresenca({
   declinedCount,
   pendingCount,
   busy,
-  gameStyles,
   onUpdateAttendance,
 }: {
   selectedEvent: FootballEvent;
@@ -953,7 +942,6 @@ function VisaoPresenca({
   declinedCount: number;
   pendingCount: number;
   busy: boolean;
-  gameStyles: GameStyle[];
   onUpdateAttendance: (playerId: string, status: AttendanceStatus) => Promise<void>;
 }) {
   const attendanceByPlayerId = new Map(attendance.map((row) => [row.player_id, row]));
@@ -1032,8 +1020,8 @@ function VisaoPresenca({
             onClick={() => setFilter(key)}
             className={
               filter === key
-                ? "rounded-full border border-primary bg-primary px-3 py-1 text-xs font-bold text-primary-foreground"
-                : "rounded-full border border-border bg-card px-3 py-1 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                ? "min-h-11 rounded-full border border-primary bg-primary px-3 py-1 text-xs font-bold text-primary-foreground md:min-h-0"
+                : "min-h-11 rounded-full border border-border bg-card px-3 py-1 text-xs font-bold text-muted-foreground hover:border-primary/50 hover:text-foreground md:min-h-0"
             }
           >
             {label}
@@ -1230,7 +1218,6 @@ function EventFormDialog({
   onUseMyLocation,
   onClearLocation,
   onSave,
-  onCancel,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -1254,7 +1241,6 @@ function EventFormDialog({
   onUseMyLocation: () => void;
   onClearLocation: () => void;
   onSave: () => void;
-  onCancel: () => void;
 }) {
   return (
     <ResponsiveDialog

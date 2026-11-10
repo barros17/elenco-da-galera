@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { removeStoredPlayerPhotos, uploadPlayerPhoto } from "@/lib/photo-storage";
-import { calcOverall, clampWeakFoot, type Player, type Position, type Skills } from "./players";
+import { clampWeakFoot, type Player, type Position, type Skills } from "./players";
 
 export type PlayerInput = {
   name: string;

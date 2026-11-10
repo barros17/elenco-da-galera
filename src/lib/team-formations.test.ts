@@ -108,4 +108,17 @@ describe("team formations", () => {
     expect(slots[0]?.y).toBe(72);
     expect(slots.at(-1)?.y).toBe(29);
   });
+
+  it("builds a 5-3-2 formation without collapsing row positions", () => {
+    const slots = buildFormation({
+      hasGoalkeeper: false,
+      defenders: 5,
+      midfielders: 3,
+      attackers: 2,
+    });
+
+    expect(slots).toHaveLength(10);
+    expect(slots.filter((slot) => slot.y === 72)).toHaveLength(5);
+    expect(new Set(slots.filter((slot) => slot.y === 72).map((slot) => slot.x)).size).toBe(5);
+  });
 });
