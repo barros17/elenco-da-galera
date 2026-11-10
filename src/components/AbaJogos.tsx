@@ -181,6 +181,7 @@ export function AbaJogos({
   const [pendingAction, setPendingAction] = useState<"cancel" | "delete" | null>(null);
   const [busy, setBusy] = useState(false);
   const [pastOpen, setPastOpen] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
 
   const titleInputRef = useRef<HTMLInputElement>(null);
 
@@ -268,6 +269,7 @@ export function AbaJogos({
     setLocationLng(null);
     setEditingOriginalFormat(null);
     setLocationOpen(false);
+    setFormDirty(false);
   }
 
   function openNovoJogo() {
@@ -277,6 +279,7 @@ export function AbaJogos({
   }
 
   function openEditarJogo(eventId: string) {
+    setFormDirty(false);
     onNavigate({ dialogo: "editar-jogo", id: eventId });
   }
 
@@ -291,7 +294,7 @@ export function AbaJogos({
     editingOriginalFormat !== `${modality}:${gameStyleId ?? ""}` &&
     attendance.length > 0;
 
-  const isFormDirty = title.trim().length > 0 || locationName.length > 0;
+  const isFormDirty = formDirty;
 
   async function saveEvent() {
     if (!title.trim()) {
@@ -597,16 +600,35 @@ export function AbaJogos({
           formatChanged={formatChanged}
           locationOpen={locationOpen}
           titleInputRef={titleInputRef}
-          onChangeTitle={setTitle}
-          onChangeStartsAt={setStartsAt}
-          onChangeEndsAt={setEndsAt}
+          onChangeTitle={(value) => {
+            setFormDirty(true);
+            setTitle(value);
+          }}
+          onChangeStartsAt={(value) => {
+            setFormDirty(true);
+            setStartsAt(value);
+          }}
+          onChangeEndsAt={(value) => {
+            setFormDirty(true);
+            setEndsAt(value);
+          }}
           onChangeModality={(mod, styleId) => {
+            setFormDirty(true);
             setModality(mod);
             setGameStyleId(styleId);
           }}
-          onChangeLocationName={setLocationName}
-          onChangeLocationAddress={setLocationAddress}
-          onChangeLocationLink={setLocationLink}
+          onChangeLocationName={(value) => {
+            setFormDirty(true);
+            setLocationName(value);
+          }}
+          onChangeLocationAddress={(value) => {
+            setFormDirty(true);
+            setLocationAddress(value);
+          }}
+          onChangeLocationLink={(value) => {
+            setFormDirty(true);
+            setLocationLink(value);
+          }}
           onToggleLocation={setLocationOpen}
           onUseMyLocation={useMyLocation}
           onClearLocation={clearLocation}
@@ -773,16 +795,35 @@ export function AbaJogos({
         formatChanged={formatChanged}
         locationOpen={locationOpen}
         titleInputRef={titleInputRef}
-        onChangeTitle={setTitle}
-        onChangeStartsAt={setStartsAt}
-        onChangeEndsAt={setEndsAt}
+        onChangeTitle={(value) => {
+          setFormDirty(true);
+          setTitle(value);
+        }}
+        onChangeStartsAt={(value) => {
+          setFormDirty(true);
+          setStartsAt(value);
+        }}
+        onChangeEndsAt={(value) => {
+          setFormDirty(true);
+          setEndsAt(value);
+        }}
         onChangeModality={(mod, styleId) => {
+          setFormDirty(true);
           setModality(mod);
           setGameStyleId(styleId);
         }}
-        onChangeLocationName={setLocationName}
-        onChangeLocationAddress={setLocationAddress}
-        onChangeLocationLink={setLocationLink}
+        onChangeLocationName={(value) => {
+          setFormDirty(true);
+          setLocationName(value);
+        }}
+        onChangeLocationAddress={(value) => {
+          setFormDirty(true);
+          setLocationAddress(value);
+        }}
+        onChangeLocationLink={(value) => {
+          setFormDirty(true);
+          setLocationLink(value);
+        }}
         onToggleLocation={setLocationOpen}
         onUseMyLocation={useMyLocation}
         onClearLocation={clearLocation}
@@ -1220,13 +1261,13 @@ function EventFormDialog({
         isEditing ? "Edite as informações do jogo." : "Preencha os dados do novo jogo da seção."
       }
       dirty={dirty}
-      footer={
+      footer={({ requestClose }) => (
         <div className="flex gap-2">
           <Button
             type="button"
             variant="outline"
             className="flex-1"
-            onClick={onCancel}
+            onClick={requestClose}
             disabled={busy}
           >
             Cancelar
@@ -1235,7 +1276,7 @@ function EventFormDialog({
             {busy ? "Salvando..." : isEditing ? "Salvar alterações" : "Criar jogo"}
           </Button>
         </div>
-      }
+      )}
     >
       <div className="space-y-4">
         {/* Seção Básico */}

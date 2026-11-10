@@ -33,7 +33,7 @@ export type ResponsiveDialogProps = {
   title: string;
   description: string;
   children: React.ReactNode;
-  footer?: React.ReactNode;
+  footer?: React.ReactNode | ((actions: { requestClose: () => void }) => React.ReactNode);
   /** Se true, exibe AlertDialog de descarte ao tentar fechar */
   dirty?: boolean;
 };
@@ -64,6 +64,9 @@ export function ResponsiveDialog({
     onOpenChange(false);
   }
 
+  const footerContent =
+    typeof footer === "function" ? footer({ requestClose: handleClose }) : footer;
+
   if (isDesktop) {
     return (
       <>
@@ -83,9 +86,9 @@ export function ResponsiveDialog({
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
               {children}
             </div>
-            {footer && (
+            {footerContent && (
               <div className="shrink-0 border-t border-border bg-background px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
-                {footer}
+                {footerContent}
               </div>
             )}
           </DialogContent>
@@ -130,14 +133,14 @@ export function ResponsiveDialog({
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
             {children}
           </div>
-          {footer && (
+          {footerContent && (
             <div
               className={cn(
                 "shrink-0 border-t border-border bg-background px-4 pt-3",
                 "pb-[calc(0.75rem+env(safe-area-inset-bottom))]",
               )}
             >
-              {footer}
+              {footerContent}
             </div>
           )}
         </DrawerContent>

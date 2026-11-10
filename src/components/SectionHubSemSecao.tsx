@@ -48,6 +48,7 @@ export function SectionHubSemSecao({
 
   function closeDialogo() {
     setDialogo(undefined);
+    setName("");
     onCloseDialogo?.();
   }
 
@@ -111,9 +112,9 @@ export function SectionHubSemSecao({
         title="Criar seção"
         description="Você será o administrador. A seção pode ter até 24 participantes, incluindo você."
         dirty={name.length > 0}
-        footer={
+        footer={({ requestClose }) => (
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={closeDialogo} disabled={busy}>
+            <Button variant="outline" className="flex-1" onClick={requestClose} disabled={busy}>
               Cancelar
             </Button>
             <Button
@@ -124,7 +125,7 @@ export function SectionHubSemSecao({
               Criar seção
             </Button>
           </div>
-        }
+        )}
       >
         <div className="space-y-2">
           <Label htmlFor="section-name">Nome da seção</Label>
@@ -146,9 +147,9 @@ export function SectionHubSemSecao({
         onOpenChange={(open) => !open && closeDialogo()}
         title="Entrar em uma seção"
         description="Use o link ou o código que o administrador compartilhou com você."
-        footer={
+        footer={({ requestClose }) => (
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={closeDialogo} disabled={busy}>
+            <Button variant="outline" className="flex-1" onClick={requestClose} disabled={busy}>
               Cancelar
             </Button>
             <Button
@@ -165,7 +166,7 @@ export function SectionHubSemSecao({
               Entrar
             </Button>
           </div>
-        }
+        )}
       >
         <div className="space-y-2">
           <Label htmlFor="section-invite">Código de convite</Label>

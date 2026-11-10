@@ -67,6 +67,8 @@ export function PlayerForm({
   }
 
   useEffect(() => {
+    setDirty(false);
+    onDirtyChange?.(false);
     if (editing) {
       setName(editing.name);
       setPosition(editing.position);
@@ -74,9 +76,8 @@ export function PlayerForm({
       setWeakFoot(editing.weak_foot);
       setPhoto(editing.photo_url);
       setRevealed(null);
-      setDirty(false);
     }
-  }, [editing]);
+  }, [editing, onDirtyChange]);
 
   useEffect(() => {
     if (!draftKey || editing) return;
@@ -178,7 +179,10 @@ export function PlayerForm({
           <Input
             id="nome"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              markDirty();
+            }}
             placeholder="Ex: Zico da Vila"
             maxLength={40}
           />
@@ -192,7 +196,14 @@ export function PlayerForm({
               Escolher foto
             </Button>
             {photo && (
-              <Button type="button" variant="ghost" onClick={() => setPhoto(null)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setPhoto(null);
+                  markDirty();
+                }}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Remover
               </Button>
@@ -247,7 +258,10 @@ export function PlayerForm({
                 type="button"
                 variant={weakFoot === value ? "default" : "secondary"}
                 size="sm"
-                onClick={() => setWeakFoot(value)}
+                onClick={() => {
+                  setWeakFoot(value);
+                  markDirty();
+                }}
                 aria-pressed={weakFoot === value}
               >
                 {value}
@@ -276,7 +290,10 @@ export function PlayerForm({
                 min={1}
                 max={99}
                 step={1}
-                onValueChange={([v]) => setSkills((prev) => ({ ...prev, [s.key]: v ?? 1 }))}
+                onValueChange={([v]) => {
+                  setSkills((prev) => ({ ...prev, [s.key]: v ?? 1 }));
+                  markDirty();
+                }}
               />
             </div>
           ))}
@@ -337,6 +354,7 @@ export function PlayerForm({
         onCancel={closeCropper}
         onConfirm={(adjusted) => {
           setPhoto(adjusted);
+          markDirty();
           closeCropper();
         }}
       />

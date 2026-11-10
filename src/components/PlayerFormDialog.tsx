@@ -62,13 +62,13 @@ export function PlayerFormDialog({
       title={title}
       description={description}
       dirty={dirty}
-      footer={
+      footer={({ requestClose }) => (
         <div className="flex gap-2">
           <Button
             type="button"
             variant="outline"
             className="flex-1"
-            onClick={() => onOpenChange(false)}
+            onClick={requestClose}
             disabled={saving}
           >
             Cancelar
@@ -82,7 +82,7 @@ export function PlayerFormDialog({
             {saving ? "Salvando..." : editing || !isNew ? "Salvar alterações" : "Salvar jogador"}
           </Button>
         </div>
-      }
+      )}
     >
       <PlayerForm
         editing={editing}

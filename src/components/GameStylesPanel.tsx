@@ -125,7 +125,10 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
   const isDirty =
     form.name !== empty.name ||
     form.players_per_team !== empty.players_per_team ||
-    form.has_goalkeeper !== empty.has_goalkeeper;
+    form.has_goalkeeper !== empty.has_goalkeeper ||
+    form.defenders !== empty.defenders ||
+    form.midfielders !== empty.midfielders ||
+    form.attackers !== empty.attackers;
 
   async function save() {
     if (!form.name.trim()) {
@@ -250,9 +253,9 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
           title={editingId ? "Editar estilo" : "Novo estilo de jogo"}
           description="Configure a formação e o número de jogadores por time."
           dirty={isDirty}
-          footer={
+          footer={({ requestClose }) => (
             <div className="flex gap-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={closeDialog}>
+              <Button type="button" variant="outline" className="flex-1" onClick={requestClose}>
                 Cancelar
               </Button>
               <Button
@@ -268,7 +271,7 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
                 {editingId ? "Salvar alterações" : "Criar estilo"}
               </Button>
             </div>
-          }
+          )}
         >
           <div className="grid gap-4 sm:grid-cols-2 [&>div]:min-w-0">
             <div className="space-y-2">
