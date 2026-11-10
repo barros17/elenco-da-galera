@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -82,6 +83,29 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
   // Controle do pop-up: via URL quando onNavigate disponível, senão estado local
   const useUrlControl = !!onNavigate;
   const [localOpen, setLocalOpen] = useState(false);
+  const urlEditingId =
+    useUrlControl && search?.dialogo === "editar-estilo" ? (search.id ?? null) : null;
+
+  useEffect(() => {
+    if (!useUrlControl) return;
+    if (urlEditingId) {
+      const style = query.data?.find((item) => item.id === urlEditingId);
+      if (style) {
+        setEditingId(style.id);
+        setForm({
+          name: style.name,
+          players_per_team: style.players_per_team,
+          has_goalkeeper: style.has_goalkeeper,
+          defenders: style.defenders,
+          midfielders: style.midfielders,
+          attackers: style.attackers,
+        });
+      }
+    } else if (search?.dialogo === "novo-estilo") {
+      setEditingId(null);
+      setForm(empty);
+    }
+  }, [query.data, search?.dialogo, urlEditingId, useUrlControl]);
 
   const dialogoAberto = useUrlControl
     ? search?.dialogo === "novo-estilo" || search?.dialogo === "editar-estilo"
@@ -131,6 +155,15 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
     form.attackers !== empty.attackers;
 
   async function save() {
+    const values = [form.players_per_team, form.defenders, form.midfielders, form.attackers];
+    if (values.some((value) => !Number.isInteger(value) || value < 0)) {
+      toast.error("Informe valores numéricos válidos para a formação.");
+      return;
+    }
+    if (form.players_per_team < 2 || form.players_per_team > 11) {
+      toast.error("Jogadores por time deve ficar entre 2 e 11.");
+      return;
+    }
     if (!form.name.trim()) {
       toast.error("Informe o nome do estilo.");
       return;
@@ -292,17 +325,23 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
                 type="number"
                 min={2}
                 max={11}
-                value={form.players_per_team}
-                onChange={(e) => setForm({ ...form, players_per_team: Number(e.target.value) })}
+                value={Number.isNaN(form.players_per_team) ? "" : form.players_per_team}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    players_per_team: e.target.value === "" ? NaN : Number(e.target.value),
+                  })
+                }
                 required
               />
             </div>
-            <label className="flex items-center gap-2 text-sm sm:col-span-2">
-              <input
-                type="checkbox"
+            <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2">
+              <Checkbox
                 checked={form.has_goalkeeper}
-                onChange={(e) => setForm({ ...form, has_goalkeeper: e.target.checked })}
-              />{" "}
+                onCheckedChange={(checked) =>
+                  setForm({ ...form, has_goalkeeper: checked === true })
+                }
+              />
               Com goleiro
             </label>
             {(["defenders", "midfielders", "attackers"] as const).map((key) => (
@@ -319,8 +358,13 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
                   type="number"
                   min={0}
                   max={11}
-                  value={form[key]}
-                  onChange={(e) => setForm({ ...form, [key]: Number(e.target.value) })}
+                  value={Number.isNaN(form[key]) ? "" : form[key]}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      [key]: e.target.value === "" ? NaN : Number(e.target.value),
+                    })
+                  }
                 />
               </div>
             ))}
@@ -335,11 +379,11 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
                   Faltam {Math.max(0, form.players_per_team - total)} jogadores na formação.
                 </p>
               )}
-              <div className="relative mt-3 h-32 rounded-lg border-2 border-white/50 bg-emerald-800">
+              <div className="relative mt-3 h-44 rounded-lg border-2 border-border bg-primary/20">
                 {slots.map((slot) => (
                   <span
                     key={slot.id}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 rounded bg-black/80 px-1 text-[9px] text-white"
+                    className="absolute -translate-x-1/2 -translate-y-1/2 rounded bg-background/90 px-1.5 py-0.5 text-xs text-foreground"
                     style={{ left: `${slot.x}%`, top: `${slot.y}%` }}
                   >
                     {slot.label}
