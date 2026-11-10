@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Skills desenvolvimento de app",
+      "trigger": "PreTaskExec",
+      "action": {
+        "type": "agent",
+        "prompt": "Quero que utilize as skills:\nreact-expert, react-native-expert, javascript-pro, sql-pro, typescript-pro, kotlin-specialist, devops-engennier, debbuging-wizard, architecture-designer e angular-architect"
+      },
+      "description": "Este hook serve para desenvolvedor especialista em app mobile",
+      "enabled": false
+    }
+  ]
+}

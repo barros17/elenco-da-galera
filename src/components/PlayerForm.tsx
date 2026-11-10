@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,10 @@ type Props = {
   onDone?: (player: Player) => void;
   onCancelEdit?: () => void;
   draftKey?: string | undefined;
+  /** Chamado sempre que o estado "sujo" (alterações não salvas) mudar. */
+  onDirtyChange?: (dirty: boolean) => void;
+  /** Registra a função de submit para que o pai possa acionar o save via botão externo. */
+  onRegisterSubmit?: (fn: () => Promise<void>) => void;
 };
 
 export function PlayerForm({
@@ -38,6 +42,8 @@ export function PlayerForm({
   onDone,
   onCancelEdit,
   draftKey,
+  onDirtyChange,
+  onRegisterSubmit,
 }: Props) {
   const [name, setName] = useState("");
   const [position, setPosition] = useState<Position>("MEI");
@@ -48,6 +54,23 @@ export function PlayerForm({
   const [revealed, setRevealed] = useState<Player | null>(null);
   const [cropSource, setCropSource] = useState<CropSource | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Rastreia se há alterações não salvas
+  const [dirty, setDirty] = useState(false);
+
+  function markDirty() {
+    if (!dirty) {
+      setDirty(true);
+      onDirtyChange?.(true);
+    }
+  }
+
+  // Ref para o save estável — evita loop de useEffect
+  const handleSaveRef = useRef<() => Promise<void>>(async () => {});
+
+  // Registra a função de save para uso externo (ex.: botão no footer do ResponsiveDialog)
+  // Usamos um ref para não precisar de useEffect com deps instáveis
+  const registerSubmitRef = useRef(onRegisterSubmit);
+  registerSubmitRef.current = onRegisterSubmit;
 
   useEffect(() => {
     if (editing) {
@@ -57,6 +80,7 @@ export function PlayerForm({
       setWeakFoot(editing.weak_foot);
       setPhoto(editing.photo_url);
       setRevealed(null);
+      setDirty(false);
     }
   }, [editing]);
 
@@ -82,6 +106,7 @@ export function PlayerForm({
     const isGk = next === "GOL";
     setPosition(next);
     if (wasGk !== isGk) setSkills(defaultSkills(next));
+    markDirty();
   }
 
   async function handlePhoto(file: File | undefined) {
@@ -119,6 +144,8 @@ export function PlayerForm({
         photo_url: photo,
       });
       setRevealed(saved);
+      setDirty(false);
+      onDirtyChange?.(false);
       toast.success(editing ? "Jogador atualizado!" : `${saved.name} entrou na pelada!`);
       if (!editing) {
         if (draftKey) clearDraft(draftKey);

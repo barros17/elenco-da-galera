@@ -1,14 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarCheck, ClipboardList, LogOut, Trophy, UserPlus } from "lucide-react";
+import { CalendarCheck, ClipboardList, LogOut, Settings, User } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { EventsStep } from "@/components/EventsStep";
-import { PlayerForm } from "@/components/PlayerForm";
-import { PlayersGallery } from "@/components/PlayersGallery";
-import { SectionHub } from "@/components/SectionHub";
-import { TeamsStep } from "@/components/TeamsStep";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { AbaSecao } from "@/components/AbaSecao";
+import { AbaElenco } from "@/components/AbaElenco";
+import { AbaJogos } from "@/components/AbaJogos";
+import { SectionHubSemSecao } from "@/components/SectionHubSemSecao";
 import {
   createPlayer,
   deletePlayer,
@@ -32,34 +39,122 @@ import {
   type NewFootballEvent,
 } from "@/lib/events";
 import {
-  createFootballEvent,
-  updateFootballEvent,
   cancelFootballEvent,
-  reactivateFootballEvent,
+  createFootballEvent,
   deleteFootballEvent,
   listEventAttendance,
   listSectionEvents,
+  reactivateFootballEvent,
   updateEventAttendance,
+  updateFootballEvent,
 } from "@/lib/event-queries";
 
-export type HomeSearch = { etapa: 1 | 2 | 3 | 4; jogo?: string; carta?: string };
+// ─── Search params ────────────────────────────────────────────────────────────
 
+export type AppSearch = {
+  aba: "jogos" | "elenco" | "secao";
+  jogo?: string;
+  visao?: "presenca" | "times";
+  dialogo?:
+    | "novo-jogo"
+    | "editar-jogo"
+    | "novo-jogador"
+    | "editar-jogador"
+    | "novo-estilo"
+    | "editar-estilo"
+    | "criar-secao"
+    | "entrar-secao";
+  id?: string;
+  // legados — só usados para compatibilidade
+  etapa?: number;
+  carta?: string;
+};
+
+function translateLegacy(raw: Record<string, unknown>): Partial<AppSearch> {
+  const etapa = Number(raw["etapa"]);
+  const carta = raw["carta"];
+  const result: Partial<AppSearch> = {};
+
+  if (etapa === 1 || etapa === 2) {
+    result.aba = "elenco";
+    if (carta === "novo") result.dialogo = "novo-jogador";
+    else if (typeof carta === "string" && /^[0-9a-f-]{8,}$/i.test(carta)) {
+      result.dialogo = "editar-jogador";
+      result.id = carta;
+    }
+  } else if (etapa === 3) {
+    result.aba = "jogos";
+    result.visao = "presenca";
+  } else if (etapa === 4) {
+    result.aba = "jogos";
+    result.visao = "times";
+  }
+  return result;
+}
+
+export function validateSearch(raw: Record<string, unknown>): AppSearch {
+  // Compatibilidade com links antigos etapa= carta=
+  const hasLegacy = "etapa" in raw;
+  const legacy = hasLegacy ? translateLegacy(raw) : {};
+
+  const rawAba = raw["aba"] ?? legacy.aba;
+  const aba: AppSearch["aba"] = rawAba === "elenco" || rawAba === "secao" ? rawAba : "jogos";
+
+  const rawVisao = raw["visao"] ?? legacy.visao;
+  const visao: AppSearch["visao"] =
+    rawVisao === "presenca" || rawVisao === "times" ? rawVisao : undefined;
+
+  const rawDialogo = raw["dialogo"] ?? legacy.dialogo;
+  const dialogoValues = [
+    "novo-jogo",
+    "editar-jogo",
+    "novo-jogador",
+    "editar-jogador",
+    "novo-estilo",
+    "editar-estilo",
+    "criar-secao",
+    "entrar-secao",
+  ] as const;
+  const dialogo = dialogoValues.includes(rawDialogo as (typeof dialogoValues)[number])
+    ? (rawDialogo as AppSearch["dialogo"])
+    : undefined;
+
+  const rawJogo = raw["jogo"];
+  const jogo =
+    typeof rawJogo === "string" && /^[0-9a-f-]{8,}$/i.test(rawJogo) ? rawJogo : undefined;
+
+  const rawId = raw["id"] ?? legacy.id;
+  const id = typeof rawId === "string" && /^[0-9a-f-]{8,}$/i.test(rawId) ? rawId : undefined;
+
+  return {
+    aba,
+    ...(visao ? { visao } : {}),
+    ...(dialogo ? { dialogo } : {}),
+    ...(jogo ? { jogo } : {}),
+    ...(id ? { id } : {}),
+  };
+}
+
+// Mantém export legado para os testes existentes
+export type HomeSearch = { etapa: 1 | 2 | 3 | 4; jogo?: string; carta?: string };
 export function validateHomeSearch(search: Record<string, unknown>): HomeSearch {
   const etapa = Number(search["etapa"]);
   return {
-    etapa: etapa === 2 || etapa === 3 || etapa === 4 ? etapa : 1,
+    etapa: etapa === 2 || etapa === 3 || etapa === 4 ? (etapa as 2 | 3 | 4) : 1,
     ...(typeof search["jogo"] === "string" && /^[0-9a-f-]{8,}$/i.test(search["jogo"])
       ? { jogo: search["jogo"] }
       : {}),
     ...(search["carta"] === "novo" ||
     (typeof search["carta"] === "string" && /^[0-9a-f-]{8,}$/i.test(search["carta"]))
-      ? { carta: search["carta"] }
+      ? { carta: search["carta"] as string }
       : {}),
   };
 }
 
+// ─── Rota ─────────────────────────────────────────────────────────────────────
+
 export const Route = createFileRoute("/")({
-  validateSearch: validateHomeSearch,
+  validateSearch,
   head: () => ({
     meta: [
       { title: "Elenco da Galera — Monte seu time" },
@@ -81,11 +176,12 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const STEPS = [
-  { id: 1, label: "Cadastro", icon: UserPlus },
-  { id: 2, label: "Jogadores", icon: ClipboardList },
-  { id: 3, label: "Presença", icon: CalendarCheck },
-  { id: 4, label: "Times", icon: Trophy },
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+const ABAS = [
+  { id: "jogos" as const, label: "Jogos", icon: CalendarCheck },
+  { id: "elenco" as const, label: "Elenco", icon: ClipboardList },
+  { id: "secao" as const, label: "Seção", icon: Settings },
 ] as const;
 
 const EMPTY_PLAYERS: Player[] = [];
@@ -100,16 +196,19 @@ function isMissingDatabaseTable(error: unknown): boolean {
   );
 }
 
+// ─── Componente principal ─────────────────────────────────────────────────────
+
 function Index() {
   const navigate = useNavigate({ from: "/" });
   const search = Route.useSearch();
-  const step = search.etapa;
-  const [editing, setEditing] = useState<Player | null>(null);
-  const creatingNew = search.carta === "novo";
+  const aba = search.aba;
+
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const queryClient = useQueryClient();
   const previousUserId = useRef<string | null>(null);
+
+  // ─── Auth ────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     let active = true;
@@ -154,15 +253,18 @@ function Index() {
     return persistQueriesForUser(queryClient, session.user.id);
   }, [queryClient, session?.user.id]);
 
+  // ─── Queries ─────────────────────────────────────────────────────────────────
+
   const sectionQuery = useQuery({
     queryKey: ["section"],
     queryFn: getMySection,
     enabled: !!session,
     staleTime: 5 * 60_000,
   });
-
   const section = sectionQuery.data ?? null;
+
   const gameStylesQuery = useGameStyles(section?.section_id);
+
   const playersQuery = useQuery({
     queryKey: ["players", section?.section_id],
     queryFn: () => listPlayers(section!.section_id),
@@ -170,6 +272,7 @@ function Index() {
     staleTime: 5 * 60_000,
   });
   const players = playersQuery.data ?? EMPTY_PLAYERS;
+
   const eventsQuery = useQuery({
     queryKey: ["section-events", section?.section_id],
     queryFn: () => listSectionEvents(section!.section_id, section!.is_admin),
@@ -177,24 +280,30 @@ function Index() {
     refetchInterval: 15_000,
   });
   const events = eventsQuery.data ?? [];
+
   const selectedEventId = search.jogo ?? null;
-  const setSelectedEventId = (id: string | null) => {
-    void navigate({
-      search: (previous) => {
-        const { jogo: _jogo, ...rest } = previous;
-        return id ? { ...rest, jogo: id } : rest;
-      },
-    });
-  };
+
+  const setSelectedEventId = useCallback(
+    (id: string | null) => {
+      void navigate({
+        search: (prev) => {
+          const { jogo: _j, ...rest } = prev;
+          return id ? { ...rest, jogo: id } : rest;
+        },
+      });
+    },
+    [navigate],
+  );
 
   useEffect(() => {
     if (!eventsQuery.data) return;
-    if (search.jogo && eventsQuery.data.some((event) => event.id === search.jogo)) return;
+    if (search.jogo && eventsQuery.data.some((e) => e.id === search.jogo)) return;
     const next = eventsQuery.data[0]?.id ?? null;
     if (next !== search.jogo) setSelectedEventId(next);
-  }, [eventsQuery.data, search.jogo]);
+  }, [eventsQuery.data, search.jogo, setSelectedEventId]);
 
-  const selectedEvent = events.find((event) => event.id === selectedEventId) ?? null;
+  const selectedEvent = events.find((e) => e.id === selectedEventId) ?? null;
+
   const attendanceQuery = useQuery({
     queryKey: ["event-attendance", selectedEvent?.id],
     queryFn: () => listEventAttendance(selectedEvent!.id),
@@ -202,49 +311,15 @@ function Index() {
     refetchInterval: 10_000,
   });
   const attendance = attendanceQuery.data ?? EMPTY_ATTENDANCE;
+
   const confirmedPlayers = useMemo(() => {
-    const playersById = new Map(players.map((player) => [player.id, player]));
+    const byId = new Map(players.map((p) => [p.id, p]));
     return getConfirmedAttendance(attendance)
-      .map((row) => playersById.get(row.player_id))
-      .filter((player): player is Player => player !== undefined);
+      .map((row) => byId.get(row.player_id))
+      .filter((p): p is Player => p !== undefined);
   }, [attendance, players]);
-  const handleCreateEvent = useCallback(
-    async (event: NewFootballEvent) => {
-      const eventId = await createFootballEvent(event);
-      await queryClient.invalidateQueries({ queryKey: ["section-events", event.section_id] });
-      setSelectedEventId(eventId);
-    },
-    [queryClient],
-  );
-  const refreshEvents = useCallback(
-    async () =>
-      queryClient.invalidateQueries({ queryKey: ["section-events", section?.section_id] }),
-    [queryClient, section?.section_id],
-  );
-  const handleUpdateEvent = useCallback(
-    async (event: NewFootballEvent & { id: string }) => {
-      await updateFootballEvent(event);
-      await refreshEvents();
-      await queryClient.invalidateQueries({ queryKey: ["event-attendance", event.id] });
-    },
-    [queryClient, refreshEvents],
-  );
-  const handleEventAction = useCallback(
-    async (action: () => Promise<void>, eventId: string, clearSelection = false) => {
-      await action();
-      await refreshEvents();
-      await queryClient.invalidateQueries({ queryKey: ["event-attendance", eventId] });
-      if (clearSelection && selectedEventId === eventId) setSelectedEventId(null);
-    },
-    [queryClient, refreshEvents, selectedEventId],
-  );
-  const ownPlayer = players.find((player) => player.user_id === session?.user.id) ?? null;
-  const isAdmin = section?.is_admin ?? false;
-  const playerFromUrl =
-    search.carta && search.carta !== "novo"
-      ? (players.find((player) => player.id === search.carta) ?? null)
-      : null;
-  const playerBeingEdited = creatingNew ? null : (playerFromUrl ?? editing ?? ownPlayer);
+
+  // ─── Mutations / handlers ────────────────────────────────────────────────────
 
   async function refreshSectionData() {
     await Promise.all([
@@ -267,22 +342,79 @@ function Index() {
     },
   });
 
-  async function handleSubmit(input: PlayerInput) {
+  async function handleSubmitPlayer(
+    input: PlayerInput,
+    isAdmin: boolean,
+    isNew: boolean,
+  ): Promise<Player> {
     if (!section) throw new Error("Entre ou crie uma seção antes de cadastrar seu jogador.");
-    const saved = playerBeingEdited
-      ? await updatePlayer(playerBeingEdited.id, input, section.section_id)
+    const ownPlayer = players.find((p) => p.user_id === session?.user.id) ?? null;
+    // Se admin e isNew, não vincula ao próprio usuário
+    const editingPlayer = isNew ? null : ownPlayer;
+    const saved = editingPlayer
+      ? await updatePlayer(editingPlayer.id, input, section.section_id)
       : await createPlayer(input, section.section_id, {
-          // Administrador adicionando um jogador extra: não fica vinculado a ninguém.
-          linkToSelf: !(isAdmin && creatingNew),
+          linkToSelf: !(isAdmin && isNew),
         });
-    if (playerBeingEdited?.photo_url && playerBeingEdited.photo_url === saved.photo_url) {
+    if (editingPlayer?.photo_url && editingPlayer.photo_url === saved.photo_url) {
       await queryClient.invalidateQueries({
-        queryKey: ["player-photo-signed-url", playerBeingEdited.photo_url],
+        queryKey: ["player-photo-signed-url", editingPlayer.photo_url],
       });
     }
     await refreshSectionData();
     return saved;
   }
+
+  async function handleSubmitPlayerById(id: string | null, input: PlayerInput): Promise<Player> {
+    if (!section) throw new Error("Entre ou crie uma seção antes de cadastrar seu jogador.");
+    const target = id ? (players.find((p) => p.id === id) ?? null) : null;
+    const saved = target
+      ? await updatePlayer(target.id, input, section.section_id)
+      : await createPlayer(input, section.section_id, { linkToSelf: true });
+    if (target?.photo_url && target.photo_url === saved.photo_url) {
+      await queryClient.invalidateQueries({
+        queryKey: ["player-photo-signed-url", target.photo_url],
+      });
+    }
+    await refreshSectionData();
+    return saved;
+  }
+
+  const handleCreateEvent = useCallback(
+    async (event: NewFootballEvent) => {
+      const eventId = await createFootballEvent(event);
+      await queryClient.invalidateQueries({ queryKey: ["section-events", event.section_id] });
+      setSelectedEventId(eventId);
+    },
+    [queryClient, setSelectedEventId],
+  );
+
+  const refreshEvents = useCallback(
+    async () =>
+      queryClient.invalidateQueries({ queryKey: ["section-events", section?.section_id] }),
+    [queryClient, section?.section_id],
+  );
+
+  const handleUpdateEvent = useCallback(
+    async (event: NewFootballEvent & { id: string }) => {
+      await updateFootballEvent(event);
+      await refreshEvents();
+      await queryClient.invalidateQueries({ queryKey: ["event-attendance", event.id] });
+    },
+    [queryClient, refreshEvents],
+  );
+
+  const handleEventAction = useCallback(
+    async (action: () => Promise<void>, eventId: string, clearSelection = false) => {
+      await action();
+      await refreshEvents();
+      await queryClient.invalidateQueries({ queryKey: ["event-attendance", eventId] });
+      if (clearSelection && selectedEventId === eventId) setSelectedEventId(null);
+    },
+    [queryClient, refreshEvents, selectedEventId, setSelectedEventId],
+  );
+
+  // ─── Auth actions ────────────────────────────────────────────────────────────
 
   async function handleGoogleSignIn() {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -303,259 +435,343 @@ function Index() {
     }
   }
 
+  // ─── Navegação ───────────────────────────────────────────────────────────────
+
+  function goToAba(novaAba: AppSearch["aba"]) {
+    void navigate({ search: (prev) => ({ ...prev, aba: novaAba }) });
+  }
+
+  // ─── Render ──────────────────────────────────────────────────────────────────
+
+  const hasSection = !!section;
+  const isAdmin = section?.is_admin ?? false;
+  const ownPlayer = players.find((p) => p.user_id === session?.user.id) ?? null;
+
   return (
     <div className="min-h-dvh">
       <Toaster position="bottom-center" className="pb-[env(safe-area-inset-bottom)]" />
-      <header className="border-b border-border/60 bg-background/70 backdrop-blur">
-        <div className="mx-auto max-w-6xl px-4 py-5 text-center sm:py-7">
-          <h1>
-            <span className="mx-auto flex w-fit items-center justify-center gap-3">
-              <img
-                src="/elenco-da-galera.jpg"
-                alt=""
-                aria-hidden="true"
-                className="h-14 w-14 rounded-2xl object-cover shadow-glow-gold sm:h-16 sm:w-16"
-              />
-              <span className="text-left font-display text-4xl leading-none font-extrabold tracking-tight text-foreground sm:text-5xl">
-                ELENCO
-                <span className="block text-primary">DA GALERA</span>
-              </span>
-            </span>
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-            Cartas para a galera e times equilibrados sem discussão.
-          </p>
-          {session && (
-            <div className="mt-4 flex items-center justify-center gap-3">
-              {session.user.email && (
-                <span className="max-w-[15rem] truncate text-xs text-muted-foreground">
-                  {session.user.email}
+
+      {/* ── Cabeçalho fixo ────────────────────────────────────────────────────── */}
+      <header
+        className="sticky top-0 z-30 border-b border-border/60 bg-background/90 backdrop-blur"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
+          {/* Logo + nome da seção (toque vai para aba Seção) */}
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+            onClick={() => {
+              if (session && hasSection) goToAba("secao");
+            }}
+            aria-label={hasSection ? "Ir para a seção" : undefined}
+          >
+            <img
+              src="/elenco-da-galera.jpg"
+              alt=""
+              aria-hidden="true"
+              className="h-8 w-8 shrink-0 rounded-lg object-cover"
+            />
+            {session && !authLoading ? (
+              hasSection ? (
+                <span className="min-w-0 truncate font-display text-base font-bold uppercase tracking-tight text-foreground">
+                  {section!.name}
                 </span>
-              )}
-              <button
-                type="button"
-                onClick={() => void handleSignOut()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                Sair
-              </button>
-            </div>
+              ) : (
+                <span className="font-display text-xl font-extrabold leading-none tracking-tight text-foreground">
+                  ELENCO
+                  <span className="text-primary"> DA GALERA</span>
+                </span>
+              )
+            ) : (
+              <span className="font-display text-xl font-extrabold leading-none tracking-tight text-foreground">
+                ELENCO
+                <span className="text-primary"> DA GALERA</span>
+              </span>
+            )}
+          </button>
+
+          {/* Menu da conta */}
+          {session && !authLoading && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-card transition-colors hover:border-primary/50"
+                  aria-label="Menu da conta"
+                >
+                  <User className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                {session.user.email && (
+                  <>
+                    <DropdownMenuLabel className="max-w-full truncate text-xs font-normal text-muted-foreground">
+                      {session.user.email}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                <DropdownMenuItem
+                  onClick={() => void handleSignOut()}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </header>
 
-      {session && !authLoading && section && (
-        <nav className="sticky top-0 z-20 border-b border-border/60 bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur">
-          <div className="scrollbar-none mx-auto flex min-w-0 max-w-6xl gap-2 overflow-x-auto px-[max(0.75rem,env(safe-area-inset-left))] py-3 pr-[max(0.75rem,env(safe-area-inset-right))]">
-            {STEPS.map((s) => {
-              const Icon = s.icon;
-              const active = step === s.id;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => {
-                    if (s.id === 1) {
-                      setEditing(ownPlayer);
-                    }
-                    void navigate({ search: (previous) => ({ ...previous, etapa: s.id }) });
-                  }}
-                  className={cn(
-                    "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2 text-[11px] font-display font-bold uppercase tracking-wide transition-all sm:flex-row sm:gap-2 sm:px-3 sm:py-2.5 sm:text-sm",
-                    active
-                      ? "border-primary bg-primary text-primary-foreground shadow-glow-gold"
-                      : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="min-w-0 max-w-full truncate">
-                    <span className="sm:hidden">{s.label}</span>
-                    <span className="hidden sm:inline">
-                      {s.id}. {s.label}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-      )}
-
-      {session && !authLoading && section && (
-        <SectionHub section={section} onChanged={refreshSectionData} />
-      )}
-
-      <main className="mx-auto max-w-6xl min-w-0 px-[max(1rem,env(safe-area-inset-left))] py-8 pb-[calc(2rem+env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))]">
+      {/* ── Conteúdo principal ────────────────────────────────────────────────── */}
+      <main
+        className={cn(
+          "mx-auto max-w-6xl min-w-0 px-[max(1rem,env(safe-area-inset-left))] py-6 pr-[max(1rem,env(safe-area-inset-right))]",
+          // padding inferior: barra de abas fixas no mobile (md:) + safe area
+          session && hasSection ? "pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-8" : "pb-8",
+        )}
+      >
         {authLoading ? (
-          <div className="space-y-4 py-12" aria-label="Carregando">
-            <div className="mx-auto h-8 w-48 animate-pulse rounded bg-muted" />
-            <div className="mx-auto h-24 max-w-md animate-pulse rounded-2xl bg-muted" />
-          </div>
+          <LoadingState />
         ) : !session ? (
-          <section className="mx-auto max-w-md rounded-2xl border border-border bg-card p-6 text-center shadow-lg">
-            <h2 className="font-display text-2xl text-foreground">Entre para continuar</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Faça login com Google para criar ou entrar em uma seção e montar o elenco com seu
-              grupo.
-            </p>
-            <button
-              type="button"
-              onClick={() => void handleGoogleSignIn()}
-              className="mt-6 w-full rounded-xl bg-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-wide text-primary-foreground transition-opacity hover:opacity-90"
-            >
-              Continuar com Google
-            </button>
-          </section>
+          <LoginScreen onSignIn={handleGoogleSignIn} />
         ) : sectionQuery.isLoading ? (
           <p className="py-12 text-center text-sm text-muted-foreground">Carregando seção...</p>
         ) : sectionQuery.isError ? (
-          <div className="py-12 text-center">
-            <p className="text-sm text-destructive">Não foi possível carregar sua seção.</p>
-            <button
-              type="button"
-              onClick={() => void sectionQuery.refetch()}
-              className="mt-3 text-sm font-semibold text-primary underline"
-            >
-              Tentar novamente
-            </button>
-          </div>
+          <ErrorState
+            message="Não foi possível carregar sua seção."
+            onRetry={() => void sectionQuery.refetch()}
+          />
         ) : !section ? (
-          <SectionHub section={null} onChanged={refreshSectionData} />
+          /* Sem seção: onboarding com dois botões grandes */
+          <SectionHubSemSecao
+            onChanged={refreshSectionData}
+            initialDialogo={
+              search.dialogo === "criar-secao" || search.dialogo === "entrar-secao"
+                ? search.dialogo
+                : undefined
+            }
+            onCloseDialogo={() =>
+              void navigate({
+                search: (prev) => {
+                  const { dialogo: _d, ...rest } = prev;
+                  return rest;
+                },
+              })
+            }
+          />
         ) : playersQuery.isLoading ? (
           <p className="py-12 text-center text-sm text-muted-foreground">Carregando jogadores...</p>
         ) : playersQuery.isError ? (
-          <div className="py-12 text-center">
-            <p className="text-sm text-destructive">
-              {isMissingDatabaseTable(playersQuery.error)
+          <ErrorState
+            message={
+              isMissingDatabaseTable(playersQuery.error)
                 ? "O banco de dados ainda não foi atualizado. Aplique a migration section_players para carregar os jogadores."
-                : "Não foi possível carregar os jogadores da seção."}
-            </p>
-            <button
-              type="button"
-              onClick={() => void playersQuery.refetch()}
-              className="mt-3 text-sm font-semibold text-primary underline"
-            >
-              Tentar novamente
-            </button>
-          </div>
-        ) : step === 1 ? (
-          <section className="animate-rise space-y-6">
-            <h2 className="font-display text-2xl text-foreground">
-              {playerBeingEdited
-                ? `Editando ${playerBeingEdited.name}`
-                : "Etapa 1 — Cadastro de jogador"}
-            </h2>
-            <PlayerForm
-              editing={playerBeingEdited}
-              canCancel={creatingNew}
-              onSubmit={handleSubmit}
-              draftKey={
-                session?.user.id && section
-                  ? `draft:v1:${session.user.id}:${section.section_id}:player:${creatingNew ? "new" : (playerBeingEdited?.id ?? "self")}`
-                  : undefined
-              }
-              onDone={(saved) => {
-                setEditing(saved);
-                void navigate({
-                  search: (previous) => {
-                    const { carta: _carta, ...rest } = previous;
-                    return { ...rest, etapa: 2 };
-                  },
-                });
-              }}
-              onCancelEdit={() => {
-                setEditing(null);
-                void navigate({
-                  search: (previous) => {
-                    const { carta: _carta, ...rest } = previous;
-                    return { ...rest, etapa: 2 };
-                  },
-                });
-              }}
-            />
-          </section>
-        ) : step === 2 ? (
-          <section className="animate-rise space-y-6">
-            <h2 className="font-display text-2xl text-foreground">Etapa 2 — Lista de jogadores</h2>
-            <PlayersGallery
-              players={players}
-              currentUserId={session.user.id}
-              isAdmin={isAdmin}
-              onAdd={() => {
-                setEditing(null);
-                void navigate({ search: (previous) => ({ ...previous, etapa: 1, carta: "novo" }) });
-              }}
-              onEdit={(p) => {
-                setEditing(p);
-                void navigate({ search: (previous) => ({ ...previous, etapa: 1, carta: p.id }) });
-              }}
-              onDelete={(p) => removeMutation.mutate(p.id)}
-            />
-          </section>
-        ) : step === 3 ? (
-          <EventsStep
-            sectionId={section.section_id}
-            players={players}
-            currentUserId={session.user.id}
-            isAdmin={isAdmin}
-            events={events}
-            selectedEventId={selectedEventId}
-            attendance={attendance}
-            eventsLoading={eventsQuery.isLoading}
-            eventsError={eventsQuery.isError}
-            eventsErrorMessage={
-              isMissingDatabaseTable(eventsQuery.error)
-                ? "Aplique as migrations de eventos e presença no Supabase para habilitar os jogos."
-                : "Não foi possível carregar os jogos."
+                : "Não foi possível carregar os jogadores da seção."
             }
-            attendanceLoading={attendanceQuery.isLoading}
-            attendanceError={attendanceQuery.isError}
-            attendanceErrorMessage={
-              isMissingDatabaseTable(attendanceQuery.error)
-                ? "Aplique as migrations de eventos e presença no Supabase para habilitar as presenças."
-                : "Não foi possível carregar as presenças."
-            }
-            onSelectEvent={setSelectedEventId}
-            onCreateEvent={handleCreateEvent}
-            onUpdateEvent={handleUpdateEvent}
-            onCancelEvent={(eventId) =>
-              handleEventAction(() => cancelFootballEvent(eventId), eventId)
-            }
-            onReactivateEvent={(eventId) =>
-              handleEventAction(() => reactivateFootballEvent(eventId), eventId)
-            }
-            onDeleteEvent={(eventId) =>
-              handleEventAction(() => deleteFootballEvent(eventId), eventId, true)
-            }
-            onSetAttendance={async (eventId, playerId, status: AttendanceStatus) => {
-              await updateEventAttendance(eventId, playerId, status);
-              await queryClient.invalidateQueries({ queryKey: ["event-attendance", eventId] });
-            }}
-            onRefreshEvents={() => void eventsQuery.refetch()}
-            onRefreshAttendance={() => void attendanceQuery.refetch()}
-            gameStyles={gameStylesQuery.data ?? []}
-            draftKey={
-              session?.user.id && section
-                ? `draft:v1:${session.user.id}:${section.section_id}:event:${selectedEventId ?? "new"}`
-                : undefined
-            }
+            onRetry={() => void playersQuery.refetch()}
           />
         ) : (
-          <section className="animate-rise space-y-6">
-            <TeamsStep
-              event={selectedEvent}
-              confirmedPlayers={confirmedPlayers}
-              attendanceLoading={attendanceQuery.isLoading}
-              attendanceError={attendanceQuery.isError}
-            />
-          </section>
+          /* ── Abas ────────────────────────────────────────────────────────── */
+          <>
+            {aba === "jogos" && (
+              <AbaJogos
+                sectionId={section.section_id}
+                players={players}
+                currentUserId={session.user.id}
+                isAdmin={isAdmin}
+                events={events}
+                selectedEventId={selectedEventId}
+                attendance={attendance}
+                eventsLoading={eventsQuery.isLoading}
+                eventsError={eventsQuery.isError}
+                eventsErrorMessage={
+                  isMissingDatabaseTable(eventsQuery.error)
+                    ? "Aplique as migrations de eventos e presença no Supabase para habilitar os jogos."
+                    : "Não foi possível carregar os jogos."
+                }
+                attendanceLoading={attendanceQuery.isLoading}
+                attendanceError={attendanceQuery.isError}
+                attendanceErrorMessage={
+                  isMissingDatabaseTable(attendanceQuery.error)
+                    ? "Aplique as migrations de eventos e presença no Supabase para habilitar as presenças."
+                    : "Não foi possível carregar as presenças."
+                }
+                confirmedPlayers={confirmedPlayers}
+                gameStyles={gameStylesQuery.data ?? []}
+                search={search}
+                onSelectEvent={setSelectedEventId}
+                onCreateEvent={handleCreateEvent}
+                onUpdateEvent={handleUpdateEvent}
+                onCancelEvent={(id) => handleEventAction(() => cancelFootballEvent(id), id)}
+                onReactivateEvent={(id) => handleEventAction(() => reactivateFootballEvent(id), id)}
+                onDeleteEvent={(id) => handleEventAction(() => deleteFootballEvent(id), id, true)}
+                onSetAttendance={async (eventId, playerId, status: AttendanceStatus) => {
+                  await updateEventAttendance(eventId, playerId, status);
+                  await queryClient.invalidateQueries({ queryKey: ["event-attendance", eventId] });
+                }}
+                onNavigate={(params) =>
+                  void navigate({ search: (prev) => ({ ...prev, ...params }) })
+                }
+                {...(session.user.id && section
+                  ? {
+                      draftKey: `draft:v1:${session.user.id}:${section.section_id}:event:${selectedEventId ?? "new"}`,
+                    }
+                  : {})}
+              />
+            )}
+
+            {aba === "elenco" && (
+              <AbaElenco
+                players={players}
+                currentUserId={session.user.id}
+                isAdmin={isAdmin}
+                sectionId={section.section_id}
+                search={search}
+                onDelete={(p) => removeMutation.mutate(p.id)}
+                onSubmitPlayer={handleSubmitPlayerById}
+                onNavigate={(params) =>
+                  void navigate({ search: (prev) => ({ ...prev, ...params }) })
+                }
+                {...(session.user.id && section
+                  ? { draftKeyPrefix: `draft:v1:${session.user.id}:${section.section_id}` }
+                  : {})}
+              />
+            )}
+
+            {aba === "secao" && (
+              <AbaSecao
+                section={section}
+                search={search}
+                onChanged={refreshSectionData}
+                onNavigate={(params) =>
+                  void navigate({ search: (prev) => ({ ...prev, ...params }) })
+                }
+              />
+            )}
+          </>
         )}
       </main>
+
+      {/* ── Barra de abas (mobile: fixed bottom; desktop: no header) ─────────── */}
+      {session && !authLoading && hasSection && (
+        <>
+          {/* Mobile: barra inferior fixa */}
+          <nav
+            aria-label="Navegação principal"
+            className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/95 backdrop-blur md:hidden"
+            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          >
+            <div className="mx-auto flex max-w-lg px-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))]">
+              {ABAS.map((a) => {
+                const Icon = a.icon;
+                const active = aba === a.id;
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => goToAba(a.id)}
+                    className={cn(
+                      "flex min-h-[3rem] flex-1 flex-col items-center justify-center gap-0.5 px-2 py-2 text-[10px] font-bold uppercase tracking-wide transition-colors",
+                      active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span>{a.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+
+          {/* Desktop: abas acima do conteúdo (sticky abaixo do header) */}
+          <div className="sticky top-[calc(env(safe-area-inset-top)+2.75rem)] z-20 hidden border-b border-border/60 bg-background/90 backdrop-blur md:block">
+            <div className="mx-auto flex max-w-6xl gap-1 px-4 py-2">
+              {ABAS.map((a) => {
+                const Icon = a.icon;
+                const active = aba === a.id;
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => goToAba(a.id)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-bold uppercase tracking-wide transition-all",
+                      active
+                        ? "border-primary bg-primary text-primary-foreground shadow-glow-gold"
+                        : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {a.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
 
       <footer className="border-t border-border/60 py-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground">
         ELENCO DA GALERA
       </footer>
+    </div>
+  );
+}
+
+// ─── Sub-componentes auxiliares ───────────────────────────────────────────────
+
+function LoadingState() {
+  return (
+    <div className="space-y-4 py-12" aria-label="Carregando">
+      <div className="mx-auto h-8 w-48 animate-pulse rounded bg-muted" />
+      <div className="mx-auto h-24 max-w-md animate-pulse rounded-2xl bg-muted" />
+    </div>
+  );
+}
+
+function LoginScreen({ onSignIn }: { onSignIn: () => void }) {
+  return (
+    <section className="mx-auto max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-lg">
+      <img
+        src="/elenco-da-galera.jpg"
+        alt=""
+        aria-hidden="true"
+        className="mx-auto mb-4 h-20 w-20 rounded-2xl object-cover shadow-glow-gold"
+      />
+      <h1 className="font-display text-4xl font-extrabold leading-none tracking-tight text-foreground">
+        ELENCO
+        <span className="block text-primary">DA GALERA</span>
+      </h1>
+      <p className="mt-3 text-sm text-muted-foreground">
+        Cartas para a galera e times equilibrados sem discussão.
+      </p>
+      <button
+        type="button"
+        onClick={onSignIn}
+        className="mt-6 w-full rounded-xl bg-primary px-4 py-3 font-display text-sm font-bold uppercase tracking-wide text-primary-foreground transition-opacity hover:opacity-90"
+      >
+        Continuar com Google
+      </button>
+    </section>
+  );
+}
+
+function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="py-12 text-center">
+      <p className="text-sm text-destructive">{message}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-3 text-sm font-semibold text-primary underline"
+      >
+        Tentar novamente
+      </button>
     </div>
   );
 }

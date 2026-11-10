@@ -255,7 +255,6 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="font-display text-2xl text-foreground">Etapa 4 — Gerar times</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           O sorteio usa apenas quem confirmou presença. Selecione cards e posições para ajustar a
           escalação; também é possível arrastar e soltar.
@@ -290,29 +289,34 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
           )}
         </div>
         <div className="ml-auto flex gap-2">
-          <Button
-            onClick={() => draw()}
-            size="lg"
-            disabled={!event || attendanceLoading || attendanceError || !formation}
-          >
-            <Dices className="mr-2 h-4 w-4" />
-            Gerar dois times
-          </Button>
-          {event && formation && confirmedPlayers.length < formation.teamSize * 2 && (
-            <Button
-              onClick={() => draw(true)}
-              size="lg"
-              variant="secondary"
-              disabled={confirmedPlayers.length < 4}
-            >
-              <Dices className="mr-2 h-4 w-4" />
-              Sortear com os confirmados atuais
-            </Button>
-          )}
-          {result && (
+          {!result ? (
+            /* Primeiro sorteio */
+            <>
+              <Button
+                onClick={() => draw()}
+                size="lg"
+                disabled={!event || attendanceLoading || attendanceError || !formation}
+              >
+                <Dices className="mr-2 h-4 w-4" />
+                Sortear
+              </Button>
+              {event && formation && confirmedPlayers.length < formation.teamSize * 2 && (
+                <Button
+                  onClick={() => draw(true)}
+                  size="lg"
+                  variant="secondary"
+                  disabled={confirmedPlayers.length < 4}
+                >
+                  <Dices className="mr-2 h-4 w-4" />
+                  Sortear com os confirmados atuais
+                </Button>
+              )}
+            </>
+          ) : (
+            /* Após primeiro sorteio */
             <Button onClick={() => draw()} size="lg" variant="secondary">
               <Shuffle className="mr-2 h-4 w-4" />
-              Sortear novamente
+              Sortear de novo
             </Button>
           )}
         </div>
@@ -332,9 +336,14 @@ export function TeamsStep({ event, confirmedPlayers, attendanceLoading, attendan
             <p className="text-sm text-muted-foreground">
               Formação {formation.format} · {formation.label}
             </p>
-            <Button onClick={download} variant="outline" disabled={downloading} className="ml-auto">
-              <Download className="mr-2 h-4 w-4" />
-              Baixar imagem
+            <Button
+              onClick={download}
+              variant="outline"
+              size="icon"
+              disabled={downloading}
+              aria-label="Baixar imagem dos times"
+            >
+              <Download className="h-4 w-4" />
             </Button>
           </div>
 
