@@ -161,6 +161,61 @@ function cost(teams: Player[][], jitter: number, rng: () => number, hasGoalkeepe
   return base + 2.5 * (defs + mids + atks) + 4 * gks + jitter * (rng() - 0.5) * 2;
 }
 
+/** Distribui o pool inicial em snake draft, mantendo o estado dos times. */
+export function snakeDistribute(
+  reservePool: Player[],
+  buckets: Player[][],
+  teamSize: number,
+  hasGoalkeeper: boolean,
+  reserves: Player[],
+): void {
+  const teamCount = buckets.length;
+  let dir = 1;
+  let idx = 0;
+
+  for (const player of reservePool) {
+    const prefersGoalkeeperSlot = hasGoalkeeper && player.position === "GOL";
+    let attempts = 0;
+    let assigned = false;
+    while (attempts < teamCount * 4) {
+      const targetIndex = prefersGoalkeeperSlot
+        ? buckets.findIndex(
+            (team) =>
+              team.filter((member) => member.position === "GOL").length === 0 &&
+              team.length < teamSize,
+          )
+        : idx;
+
+      const selectedIndex = targetIndex >= 0 ? targetIndex : idx;
+      if (buckets[selectedIndex]!.length < teamSize) {
+        const wouldBreakGkLimit =
+          hasGoalkeeper &&
+          player.position === "GOL" &&
+          buckets[selectedIndex]!.some((member) => member.position === "GOL");
+        if (!wouldBreakGkLimit) {
+          buckets[selectedIndex]!.push(player);
+          assigned = true;
+          if (dir === 1 && selectedIndex === teamCount - 1) {
+            dir = -1;
+            idx = selectedIndex;
+          } else if (dir === -1 && selectedIndex === 0) {
+            dir = 1;
+            idx = selectedIndex;
+          } else {
+            idx = (selectedIndex + dir + teamCount) % teamCount;
+          }
+          break;
+        }
+      }
+
+      idx = (idx + 1) % teamCount;
+      attempts += 1;
+    }
+
+    if (!assigned) reserves.push(player);
+  }
+}
+
 export function generateTeams(
   all: Player[],
   teamSize: number,
@@ -205,44 +260,8 @@ export function generateTeams(
   const reservePool = [...others, ...keepers.slice(teamCount)].sort(
     (a, b) => b.overall - a.overall,
   );
-  let dir = 1;
-  let idx = 0;
   const reserves: Player[] = [];
-
-  for (const player of reservePool) {
-    const prefersGoalkeeperSlot = hasGoalkeeper && player.position === "GOL";
-    let attempts = 0;
-    while (attempts < teamCount * 4) {
-      const targetIndex = prefersGoalkeeperSlot
-        ? buckets.findIndex(
-            (team) =>
-              team.filter((member) => member.position === "GOL").length === 0 &&
-              team.length < teamSize,
-          )
-        : idx;
-
-      const selectedIndex = targetIndex >= 0 ? targetIndex : idx;
-      if (buckets[selectedIndex]!.length < teamSize) {
-        const wouldBreakGkLimit =
-          hasGoalkeeper &&
-          player.position === "GOL" &&
-          buckets[selectedIndex]!.some((member) => member.position === "GOL");
-        if (!wouldBreakGkLimit) {
-          buckets[selectedIndex]!.push(player);
-          idx = (selectedIndex + dir + teamCount) % teamCount;
-          break;
-        }
-      }
-
-      idx = (idx + dir + teamCount) % teamCount;
-      if (idx === 0 || idx === teamCount - 1) dir *= -1;
-      attempts += 1;
-    }
-
-    if (attempts >= teamCount * 4) {
-      reserves.push(player);
-    }
-  }
+  snakeDistribute(reservePool, buckets, teamSize, hasGoalkeeper, reserves);
 
   const jitter = 0.6;
   let current = cost(buckets, 0, rng, hasGoalkeeper);
@@ -263,13 +282,20 @@ export function generateTeams(
 
     const gkCountA = nextA.filter((player) => player.position === "GOL").length;
     const gkCountB = nextB.filter((player) => player.position === "GOL").length;
-    if (hasGoalkeeper && (gkCountA > 1 || gkCountB > 1)) continue;
+    const hadGkA = buckets[a]!.some((player) => player.position === "GOL");
+    const hadGkB = buckets[b]!.some((player) => player.position === "GOL");
+    if (
+      hasGoalkeeper &&
+      (gkCountA > 1 || gkCountB > 1 || (hadGkA && gkCountA === 0) || (hadGkB && gkCountB === 0))
+    )
+      continue;
 
     buckets[a]![ia] = pb;
     buckets[b]![ib] = pa;
-    const next = cost(buckets, it < 400 ? jitter : 0, rng, hasGoalkeeper);
-    if (next <= current) {
-      current = next;
+    const nextWithJitter = cost(buckets, it < 400 ? jitter : 0, rng, hasGoalkeeper);
+    const nextClean = cost(buckets, 0, rng, hasGoalkeeper);
+    if (nextWithJitter <= current) {
+      current = nextClean;
     } else {
       buckets[a]![ia] = pa;
       buckets[b]![ib] = pb;
@@ -288,6 +314,13 @@ export function generateTeams(
     : [];
   if (emptyGkTeams.length > 0) warnings.push(`Sem goleiro em: ${emptyGkTeams.join(", ")}.`);
   if (reserves.length > 0) warnings.push(`${reserves.length} reserva(s) ficaram fora do sorteio.`);
+  if (
+    options.teamCount === undefined &&
+    all.length >= teamSize &&
+    all.length < teamSize * teamCount
+  ) {
+    warnings.push("Times incompletos: faltam jogadores para completar todos os times.");
+  }
 
   const names = shuffle([...TEAM_NAMES], rng).slice(0, teamCount);
   const teams: Team[] = buckets.map((players, i) => ({
@@ -311,7 +344,7 @@ export function balanceScore(teams: Team[]): number {
   const defenders = teams.map((t) => t.players.filter((p) => isDefender(p.position)).length);
   const mids = teams.map((t) => t.players.filter((p) => isMid(p.position)).length);
   const attackers = teams.map((t) => t.players.filter((p) => isAttacker(p.position)).length);
-  const roleVariance = stdDev([...defenders, ...mids, ...attackers]);
+  const roleVariance = stdDev(defenders) + stdDev(mids) + stdDev(attackers);
   const best = Math.max(...averages);
   const worst = Math.min(...averages);
   const overallGap = best === 0 ? 0 : (best - worst) / best;
