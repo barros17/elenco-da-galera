@@ -371,7 +371,10 @@ export function AbaSecao({ section, search, onChanged, onNavigate, onCloseDialog
             <AlertDialogAction
               disabled={busy || (pendingAction === "excluir-secao" && !canDeleteSection)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => void executeAction()}
+              onClick={(event) => {
+                event.preventDefault();
+                void executeAction();
+              }}
             >
               {pendingAction === "excluir-secao"
                 ? "Excluir definitivamente"

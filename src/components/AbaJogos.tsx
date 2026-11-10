@@ -852,7 +852,10 @@ export function AbaJogos({
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => void runPendingAction()}
+              onClick={(event) => {
+                event.preventDefault();
+                void runPendingAction();
+              }}
               disabled={busy}
             >
               {pendingAction === "delete" ? "Excluir definitivamente" : "Cancelar jogo"}

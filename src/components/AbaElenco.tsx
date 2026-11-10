@@ -292,7 +292,8 @@ export function AbaElenco({
             <AlertDialogCancel onClick={() => setPendingDelete(null)}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
+              onClick={(event) => {
+                event.preventDefault();
                 if (pendingDelete) {
                   onDelete(pendingDelete);
                   setPendingDelete(null);

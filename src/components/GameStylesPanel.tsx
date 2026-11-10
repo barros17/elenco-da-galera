@@ -416,7 +416,11 @@ export function GameStylesPanel({ sectionId, isAdmin, search, onNavigate, onClos
             <AlertDialogCancel onClick={() => setPendingDelete(null)}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => void confirmDelete()}
+              disabled={mutations.remove.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                void confirmDelete();
+              }}
             >
               Excluir definitivamente
             </AlertDialogAction>
