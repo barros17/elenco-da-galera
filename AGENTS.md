@@ -7,4 +7,3 @@
 - Fotos de jogador são redimensionadas no navegador e armazenadas em bucket privado; `photo_url` guarda o caminho do objeto. Buckets públicos não devem ser usados.
 - O enquadramento das fotos é feito no navegador em `PhotoCropper.tsx`, com saída quadrada de 512px e preservação de transparência em PNG.
 - Novas migrations ficam em `supabase/migrations` com timestamp posterior ao último arquivo; RLS e validações sensíveis devem ser feitas no banco, nunca somente na UI.
-- `drizzle/` e `drizzle.config.ts` existem apenas como artefato legado; qualquer remoção precisa ser conferida antes de apagar.
