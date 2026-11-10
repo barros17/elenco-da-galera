@@ -1175,7 +1175,7 @@ function VisaoPresenca({
                 <iframe
                   className="h-64 w-full rounded-lg border border-border"
                   loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
+                  referrerPolicy="strict-origin-when-cross-origin"
                   title={`Mapa do local de ${selectedEvent.title}`}
                   sandbox="allow-scripts allow-same-origin allow-popups"
                   src={googleMapsEmbedUrl(

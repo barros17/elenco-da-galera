@@ -57,6 +57,7 @@ export function PlayersGallery({
           <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
+            aria-label="Buscar jogador"
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar jogador"
             className="pl-9"

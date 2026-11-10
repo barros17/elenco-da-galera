@@ -725,7 +725,10 @@ function Index() {
           </nav>
 
           {/* Desktop: abas acima do conteúdo (sticky abaixo do header) */}
-          <div className="sticky top-[calc(env(safe-area-inset-top)+2.75rem)] z-20 hidden border-b border-border/60 bg-background/90 backdrop-blur md:block">
+          <nav
+            aria-label="Navegação principal"
+            className="sticky top-[calc(env(safe-area-inset-top)+2.75rem)] z-20 hidden border-b border-border/60 bg-background/90 backdrop-blur md:block"
+          >
             <div className="mx-auto flex max-w-6xl gap-1 px-4 py-2">
               {ABAS.map((a) => {
                 const Icon = a.icon;
@@ -749,7 +752,7 @@ function Index() {
                 );
               })}
             </div>
-          </div>
+          </nav>
         </>
       )}
 
@@ -764,7 +767,7 @@ function Index() {
 
 function LoadingState() {
   return (
-    <div className="space-y-4 py-12" aria-label="Carregando">
+    <div className="space-y-4 py-12" role="status" aria-live="polite" aria-label="Carregando">
       <div className="mx-auto h-8 w-48 animate-pulse rounded bg-muted" />
       <div className="mx-auto h-24 max-w-md animate-pulse rounded-2xl bg-muted" />
     </div>

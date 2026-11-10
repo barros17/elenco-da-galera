@@ -286,6 +286,7 @@ export function PlayerForm({
                 </span>
               </div>
               <Slider
+                aria-label={s.label}
                 value={[skills[s.key] ?? 1]}
                 min={1}
                 max={99}

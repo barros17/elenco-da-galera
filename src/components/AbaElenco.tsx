@@ -149,6 +149,7 @@ export function AbaElenco({
           <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
+            aria-label="Buscar jogador"
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar jogador"
             className="pl-9"
@@ -162,6 +163,7 @@ export function AbaElenco({
               key={pos}
               type="button"
               onClick={() => setPosFilter(pos)}
+              aria-pressed={posFilter === pos}
               className={
                 posFilter === pos
                   ? "rounded-full border border-primary bg-primary px-3 py-1 text-xs font-bold text-primary-foreground"
